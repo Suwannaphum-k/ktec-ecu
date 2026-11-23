@@ -105,6 +105,13 @@ input.sm{width:92px}
 #t-wrap td.sel{outline:2px solid #fff;outline-offset:-2px}
 #t-wrap td.chg::before{content:"";position:absolute;top:0;right:0;border:4px solid transparent;border-top-color:#fff;border-right-color:#fff}
 #t-wrap th.sel{color:var(--hi)}
+#tl{max-height:55vh}
+.tg{padding:9px 10px;border-top:1px solid var(--line);cursor:pointer;font-weight:600;font-size:14px;background:#1b1d20;position:sticky;top:0;z-index:1}
+.tg:first-child{border-top:0}
+.fi.tr{cursor:pointer;padding-left:22px;flex-wrap:nowrap}
+.fi.tr .fn{min-width:0}
+.ti{color:var(--dim);font-size:13px}
+.fcb{width:20px;height:20px;accent-color:var(--hi);flex:none;margin:0}
 @media(prefers-reduced-motion:reduce){td.live::after{animation:none}}
 </style>
 </head>
@@ -489,14 +496,14 @@ fetch("/fl/go?f="+encodeURIComponent(sel)+"&m=real&c=FLASH",{cache:"no-store"}).
 $("#btnStop").addEventListener("click",function(){fetch("/fl/stop",{cache:"no-store"}).then(function(r){return r.json()}).then(function(o){msg("#fmsg",o.msg||"")}).catch(function(){msg("#fmsg","ส่งคำสั่งหยุดไม่ได้")})});
 
 /* ---------- tune: เปิด .bin + .xdf แล้วแก้แมพ ---------- */
-var T={bin:null,orig:null,dv:null,dvo:null,crc0:"",binName:"",xdfName:"",tabs:[],reg:0,cur:null,sel:null,anc:null,ext:false,mode:"v",undo:[],md:null,drag:false,cells:[],rh:[],ch:[]};
+var T={bin:null,orig:null,dv:null,dvo:null,crc0:"",binName:"",xdfName:"",tabs:[],flags:[],open:{},reg:0,cur:null,sel:null,anc:null,ext:false,mode:"v",undo:[],md:null,drag:false,cells:[],rh:[],ch:[]};
 var bTu=Bar("tup",40);bTu.range(0,100,[]);
 function tmsg(t){msg("#tm",t)}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return"&#"+c.charCodeAt(0)+";"})}
 function ident(x){return x}
 function kids(el,n){var o=[],c=el.children,i;for(i=0;i<c.length;i++)if(c[i].nodeName.toUpperCase()===n)o.push(c[i]);return o}
 function kid(el,n){return kids(el,n)[0]||null}
-function txt(el,n){var k=kid(el,n);return k?k.textContent.trim():""}
+function txt(el,n){var k=kid(el,n);return k?fixMoji(k.textContent.trim()):""}
 function ga(el,n){return el.getAttribute(n)}
 function num(s){if(s==null||s==="")return NaN;s=String(s).trim();return/^[-+]?0x/i.test(s)?parseInt(s,16):parseFloat(s)}
 
@@ -548,7 +555,7 @@ if(isFinite(ad)){a.addr=ad+base;a.bits=bits;a.sg=!!(fl2&1);a.le=!!(fl2&2);a.rm0=
 a.step=bits/8+(mn>0?mn/8:0);a.rc=num(ga(ed,"mmedrowcount"))||0;a.cc=num(ga(ed,"mmedcolcount"))||0;
 a.bad=!(bits===8||bits===16||bits===32)||a.addr<0;
 if(a.flt){a.lo=-3.4e38;a.hi=3.4e38}else{a.lo=a.sg?-Math.pow(2,bits-1):0;a.hi=a.sg?Math.pow(2,bits-1)-1:Math.pow(2,bits)-1}}}
-kids(el,"LABEL").forEach(function(l){var i=num(ga(l,"index"));if(isFinite(i)){a.lab=a.lab||[];a.lab[i]=ga(l,"value")}});
+kids(el,"LABEL").forEach(function(l){var i=num(ga(l,"index"));if(isFinite(i)){a.lab=a.lab||[];a.lab[i]=fixMoji(ga(l,"value")||"")}});
 var d=num(txt(el,"DECIMALPL"));a.dec=isFinite(d)?clamp(d,0,6):(a.ident?0:2);
 a.inv=(a.addr!=null&&!a.bad&&a.ok)?mkInv(a.f,a.lo,a.hi,a.ident):null;
 return a}
@@ -569,12 +576,18 @@ if(!root||doc.getElementsByTagName("parsererror").length)throw new Error("ไฟ
 if(root.nodeName.toUpperCase()!=="XDFFORMAT")throw new Error("ไม่ใช่ไฟล์ XDF");
 var hd=kid(root,"XDFHEADER"),base=0,cats=[],reg=0,tabs=[];
 if(hd){var bo=kid(hd,"BASEOFFSET");if(bo){var off=num(ga(bo,"offset"))||0;base=ga(bo,"subtract")==="1"?-off:off}
-kids(hd,"CATEGORY").forEach(function(c){var i=num(ga(c,"index"));if(isFinite(i))cats[i]=ga(c,"name")});
+kids(hd,"CATEGORY").forEach(function(c){var i=num(ga(c,"index"));if(isFinite(i))cats[i]=fixMoji(ga(c,"name")||"")});
 var rg=kid(hd,"REGION");if(rg)reg=num(ga(rg,"size"))||0}
 kids(root,"XDFTABLE").forEach(function(el){var t=tTable(el,cats,base,false);if(t)tabs.push(t)});
 kids(root,"XDFCONSTANT").forEach(function(el){var t=tTable(el,cats,base,true);if(t)tabs.push(t)});
 tabs.forEach(function(t,i){t.id=i});
-return{tabs:tabs,reg:reg}}
+var flags=[];
+kids(root,"XDFFLAG").forEach(function(el){var ed=kid(el,"EMBEDDEDDATA"),ad=ed?num(ga(ed,"mmedaddress")):NaN,mk=num(txt(el,"MASK"));
+if(!isFinite(ad)||!isFinite(mk))return;
+var bits=num(ga(ed,"mmedelementsizebits"))||8,f={title:txt(el,"TITLE")||"(ไม่มีชื่อ)",cat:[],addr:ad+base,mask:mk,ax:{bits:bits,sg:false,flt:false,le:!!((num(ga(ed,"mmedtypeflags"))||0)&2)}};
+kids(el,"CATEGORYMEM").forEach(function(m){var n=cats[num(ga(m,"category"))-1];if(n&&f.cat.indexOf(n)<0)f.cat.push(n)});
+if(bits===8||bits===16||bits===32)flags.push(f)});
+return{tabs:tabs,flags:flags,reg:reg}}
 
 /* ตาราง: ที่อยู่ ค่า ตรวจขอบเขต */
 function tAddr(t,r,c){var z=t.z;return z.addr+(t.rm?r*t.cols+c:c*t.rows+r)*z.step}
@@ -645,27 +658,42 @@ tApply(function(v){return T.mode==="p"?v*(1+sg*a/100):v+sg*a})}
 /* รายการตาราง */
 function tChips(){var h="";
 if(T.bin)h+=chip("BIN "+esc(T.binName)+" · "+fmtSize(T.bin.length),"ok");
-if(T.xdfName)h+=chip("XDF "+esc(T.xdfName)+" · "+T.tabs.length+" ตาราง","ok");
+if(T.xdfName)h+=chip("XDF "+esc(T.xdfName)+" · "+(T.tabs.length+T.flags.length)+" รายการ","ok");
 if(T.bin&&T.reg&&T.reg!==T.bin.length)h+=chip("ขนาด bin ("+T.bin.length+") ไม่ตรงกับที่ XDF ระบุ ("+T.reg+")","bad");
 $("#tchips").innerHTML=h||'<span class="chip">ยังไม่ได้เลือกไฟล์</span>'}
-function tList(){var q=$("#tq").value.trim().toLowerCase(),cat=$("#tc").value,box=$("#tl"),n=0,tot=0;
+function tFFits(f){return T.bin&&f.addr>=0&&f.addr+f.ax.bits/8<=T.bin.length}
+function tFOn(f){var m=f.mask>>>0;return((rd(f.ax,T.dv,f.addr)&m)>>>0)===m}
+function tFlag(f,on){var n=f.ax.bits/8,old=T.bin.slice(f.addr,f.addr+n),m=f.mask>>>0,v=rd(f.ax,T.dv,f.addr);
+wr(f.ax,T.dv,f.addr,(on?(v|m):(v&~m))>>>0);
+T.undo.push({t:-1,ch:[[f.addr,old]]});tStat();tList()}
+function tList(){var q=$("#tq").value.trim().toLowerCase(),cat=$("#tc").value,box=$("#tl"),tot=0;
 box.textContent="";
-if(!T.tabs.length){var e=document.createElement("div");e.className="empty";e.textContent=T.xdfName?"ไม่พบตารางในไฟล์ XDF นี้":"เลือกไฟล์ .xdf ก่อน";box.appendChild(e);$("#tcount").textContent="";return}
-T.tabs.forEach(function(t){
-if(cat&&t.cat.indexOf(cat)<0)return;
-if(q&&(t.title+" "+t.cat.join(" ")).toLowerCase().indexOf(q)<0)return;
-tot++;if(n>=200)return;n++;
-var row=document.createElement("div");row.className="fi"+(t===T.cur?" sel":"");
+if(!T.tabs.length&&!T.flags.length){var e=document.createElement("div");e.className="empty";e.textContent=T.xdfName?"ไม่พบรายการในไฟล์ XDF นี้":"เลือกไฟล์ .xdf ก่อน";box.appendChild(e);$("#tcount").textContent="";return}
+function ok(t){return(!cat||t.cat.indexOf(cat)>=0)&&(!q||(t.title+" "+t.cat.join(" ")).toLowerCase().indexOf(q)>=0)}
+function grp(key,name,items,mk){if(!items.length)return;tot+=items.length;
+var open=!!q||T.open[key]!==false,h=document.createElement("div");h.className="tg";h.textContent=(open?"▾ ":"▸ ")+name+" ("+items.length+")";
+h.addEventListener("click",function(){T.open[key]=!open;tList()});box.appendChild(h);
+if(open)items.forEach(function(it){box.appendChild(mk(it))})}
+function frow(f){var row=document.createElement("label");row.className="fi tr";
+var cb=document.createElement("input");cb.type="checkbox";cb.className="fcb";
+var fit=tFFits(f);cb.disabled=!fit;if(fit)cb.checked=tFOn(f);
+cb.addEventListener("change",function(){tFlag(f,cb.checked)});
+var nm=document.createElement("div");nm.className="fn";nm.textContent=f.title;
+if(T.bin&&!fit){var s=document.createElement("span");s.className="fs";s.textContent="นอกขนาดไฟล์";nm.appendChild(s)}
+row.appendChild(cb);row.appendChild(nm);return row}
+function trow(t){var row=document.createElement("div");row.className="fi tr"+(t===T.cur?" sel":"");
+var ic=document.createElement("span");ic.className="ti";ic.textContent="▦";
 var nm=document.createElement("div");nm.className="fn";nm.textContent=t.title;
 var sm=document.createElement("span");sm.className="fs";
-var info=(t.c?"ค่าคงที่":t.rows+"×"+t.cols)+(t.cat.length?" · "+t.cat[0]:"");
+var info=(t.c?"ค่าคงที่":t.rows+"×"+t.cols);
 if(T.bin){if(!tFits(t))info+=" · นอกขนาดไฟล์";else if(t.ro)info+=" · ดูอย่างเดียว";if(t.dirty)info+=" · แก้แล้ว"}
 sm.textContent=info;nm.appendChild(sm);
-var b=document.createElement("button");b.className="btn"+(t===T.cur?" act":"");b.type="button";b.textContent="เปิด";b.disabled=!T.bin;
-b.addEventListener("click",function(){tOpen(t)});
-row.appendChild(nm);row.appendChild(b);box.appendChild(row)});
-$("#tcount").textContent=tot?("พบ "+tot+" ตาราง"+(tot>n?" แสดง "+n+" รายการแรก พิมพ์ค้นหาเพื่อกรอง":"")):"ไม่พบตารางที่ตรงกับคำค้น";
-if(!tot){var e2=document.createElement("div");e2.className="empty";e2.textContent="ไม่พบ";box.appendChild(e2)}}
+row.addEventListener("click",function(){if(T.bin)tOpen(t);else tmsg("ยังไม่ได้เลือกไฟล์ .bin")});
+row.appendChild(ic);row.appendChild(nm);return row}
+grp("f","Flags",T.flags.filter(ok),frow);
+grp("t","Tables",T.tabs.filter(function(t){return!t.c&&ok(t)}),trow);
+grp("c","Constants",T.tabs.filter(function(t){return t.c&&ok(t)}),trow);
+$("#tcount").textContent=tot?"พบ "+tot+" รายการ":"ไม่พบรายการที่ตรงกับคำค้น"}
 function tOpen(t){
 if(!T.bin){tmsg("ยังไม่ได้เลือกไฟล์ .bin");return}
 if(!tFits(t)){tmsg("ตารางนี้อยู่นอกขนาดไฟล์ .bin ตรวจว่า bin กับ xdf เป็นของตัวเดียวกัน");return}
@@ -680,6 +708,16 @@ for(i=0;i<b.length;i++)if(b[i]!==T.orig[i])n++;
 $("#tstat").textContent=(n?"แก้แล้ว "+n+" ไบต์ · CRC32 ใหม่ "+hex8(crc32(b))+" · เดิม "+T.crc0:"ยังไม่ได้แก้อะไร · CRC32 "+T.crc0)+" · ขนาด "+fmtSize(b.length)}
 
 /* เปิดไฟล์ */
+var C1={0x20AC:0x80,0x201A:0x82,0x192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x2C6:0x88,0x2030:0x89,0x160:0x8A,0x2039:0x8B,0x152:0x8C,0x17D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x2DC:0x98,0x2122:0x99,0x161:0x9A,0x203A:0x9B,0x153:0x9C,0x17E:0x9E,0x178:0x9F};
+function tis(u){var o=[],i,b,s="";
+for(i=0;i<u.length;i++){b=u[i];o.push(b>=0xA1&&b<=0xFB?0x0E01+b-0xA1:b===0x80?0x20AC:b===0x85?0x2026:b===0x91?0x2018:b===0x92?0x2019:b===0x93?0x201C:b===0x94?0x201D:b===0x96?0x2013:b===0x97?0x2014:b)}
+for(i=0;i<o.length;i+=8192)s+=String.fromCharCode.apply(null,o.slice(i,i+8192));return s}
+function fixMoji(s){var i,c,u=new Uint8Array(s.length),hi=0;
+for(i=0;i<s.length;i++){c=s.charCodeAt(i);if(C1[c]!==undefined)c=C1[c];if(c>255)return s;u[i]=c;if(c>=0xA1)hi++}
+return hi?tis(u):s}
+function decodeTxt(buf){var u=new Uint8Array(buf);
+try{return fixMoji(new TextDecoder("utf-8",{fatal:true}).decode(u))}catch(e){}
+return tis(u)}
 function readFile(f,asText,cb){var fr=new FileReader();fr.onerror=function(){cb(null)};fr.onload=function(){cb(fr.result)};if(asText)fr.readAsText(f);else fr.readAsArrayBuffer(f)}
 function cleanName(s){s=s.split(/[\\/]/).pop().replace(/ /g,"_").replace(/[^A-Za-z0-9._-]/g,"");var b=s.replace(/\.bin$/i,"");if(b.length>35)b=b.slice(0,35);return b?b+".bin":""}
 function outName(o){var b=o.replace(/\.[^.]*$/,"").replace(/ /g,"_").replace(/[^A-Za-z0-9._-]/g,"");return cleanName(b.slice(0,30)+"_tune")}
@@ -695,15 +733,15 @@ T.tabs.forEach(function(t){t.dirty=false});
 tmsg("");tChips();tList();tStat()})});
 $("#txdf").addEventListener("change",function(){var f=this.files&&this.files[0];this.value="";if(!f)return;
 if(f.size>20*1048576){tmsg("ไฟล์ XDF ใหญ่ผิดปกติ");return}
-readFile(f,true,function(s){
-if(s==null){tmsg("อ่านไฟล์ไม่ได้");return}
-var r;try{r=tParse(s)}catch(e){tmsg("อ่าน XDF ไม่ได้: "+(e&&e.message||e));return}
-T.tabs=r.tabs;T.reg=r.reg;T.xdfName=f.name;T.cur=null;T.sel=null;$("#t-ed").hidden=true;
+readFile(f,false,function(bf){
+if(!bf){tmsg("อ่านไฟล์ไม่ได้");return}
+var r;try{r=tParse(decodeTxt(bf))}catch(e){tmsg("อ่าน XDF ไม่ได้: "+(e&&e.message||e));return}
+T.tabs=r.tabs;T.flags=r.flags;T.reg=r.reg;T.xdfName=f.name;T.cur=null;T.sel=null;$("#t-ed").hidden=true;
 T.tabs.forEach(function(t){t.dirty=T.bin&&tFits(t)?tDirtyOf(t):false});
-var cs={},sl=$("#tc"),o;T.tabs.forEach(function(t){t.cat.forEach(function(c){cs[c]=1})});
+var cs={},sl=$("#tc"),o;T.tabs.concat(T.flags).forEach(function(t){t.cat.forEach(function(c){cs[c]=1})});
 sl.textContent="";o=document.createElement("option");o.value="";o.textContent="ทุกหมวด";sl.appendChild(o);
 Object.keys(cs).sort().forEach(function(k){o=document.createElement("option");o.value=k;o.textContent=k;sl.appendChild(o)});
-tmsg(T.tabs.length?"":"ไม่พบตารางในไฟล์นี้");tChips();tList()})});
+tmsg(T.tabs.length+T.flags.length?"":"ไม่พบตารางในไฟล์นี้");tChips();tList()})});
 $("#tq").addEventListener("input",tList);$("#tc").addEventListener("change",tList);
 
 /* เลือกช่อง */
