@@ -152,7 +152,7 @@ pre.hex { white-space: pre; } pre.log { white-space: pre-wrap; min-height: 44px;
 </head>
 <body>
 <div class="app">
-  <header><h1>KTEC ECU</h1><span>รุ่นทดลอง · ค่าตัวอย่าง</span></header>
+  <header><h1>KTEC ECU</h1><span>อ่านค่าจริงจากเกจ</span></header>
 
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="live" aria-selected="true" type="button">ค่าสด</button>
@@ -190,7 +190,7 @@ pre.hex { white-space: pre; } pre.log { white-space: pre-wrap; min-height: 44px;
         <div><dt>แบตเตอรี่</dt><dd><span id="v-vol">0</span><i>V</i></dd></div>
         <div><dt>ความเร็วสูงสุด</dt><dd><span id="v-max">0</span><i>km/h</i></dd></div>
       </dl>
-      <p class="note">ตอนนี้เป็นข้อมูลจำลอง ระยะฉีดกับองศาไฟคำนวณจากแมพที่คุณแก้ ช่องที่กำลังทำงานจะมีกรอบประกะพริบในตาราง</p>
+      <p class="note" id="liveNote">ยังไม่ได้ต่อเกจ ไปที่แท็บ "ต่อ/สำรอง" ใส่ที่อยู่เกจแล้วกดต่อ ค่าที่เกจไม่ได้ส่งมาจะแสดงเป็น – ช่องที่ ECU กำลังใช้งานจริงจะมีกรอบกะพริบในตารางน้ำมันกับไฟ</p>
     </section>
 
     <section id="tab-fuel" hidden aria-label="แมพน้ำมัน">
@@ -251,9 +251,15 @@ pre.hex { white-space: pre; } pre.log { white-space: pre-wrap; min-height: 44px;
 
     <section id="tab-set" hidden aria-label="ไฟล์และเชื่อมต่อ">
       <div class="blk">
-        <h2>เชื่อมต่อ ECU</h2>
-        <p>การอ่านและเขียนค่าจริงต้องใช้ Web Serial (สาย USB-OTG) หรือ Web Bluetooth บน Chrome Android หน้านี้เปิดอยู่ในกรอบที่บล็อกอุปกรณ์ ปุ่มด้านล่างจึงทดสอบได้แค่ว่าเบราว์เซอร์รองรับไหม</p>
+        <h2>เชื่อมต่อเกจ (ค่าสดจาก ECU)</h2>
+        <p>ต่อมือถือเข้า WiFi ของเกจ KTEC-GAUGE ก่อน แล้วใส่ที่อยู่เกจด้านล่าง เว็บจะดึงค่า RPM, TPS, MAP, AFR, น้ำหล่อเย็น, แบต, ความเร็ว ที่เกจอ่านจาก ECU ผ่าน K-line</p>
+        <p class="warn">ถ้าหน้านี้เปิดจากเว็บ https ของคุณ เบราว์เซอร์จะบล็อกการเรียกเกจที่เป็น http ให้เปิดหน้านี้จากตัวเกจเอง (เก็บไว้ในการ์ด SD) หรือเปิดผ่าน http</p>
+        <div class="row" style="margin-bottom:8px">
+          <input id="gAddr" type="text" inputmode="url" autocapitalize="off" spellcheck="false" aria-label="ที่อยู่เกจ" style="flex:1;min-width:140px;background:var(--bg);border:1px solid #4a4e55;border-radius:2px;color:var(--fg);padding:0 10px;font-family:var(--f-num);font-size:16px;min-height:42px">
+          <input id="gPath" type="text" autocapitalize="off" spellcheck="false" aria-label="พาธข้อมูล" style="width:110px;background:var(--bg);border:1px solid #4a4e55;border-radius:2px;color:var(--fg);padding:0 10px;font-family:var(--f-num);font-size:16px;min-height:42px">
+        </div>
         <div class="row">
+          <button class="btn pri" id="btnGauge" type="button">ต่อเกจ</button>
           <button class="btn" id="btnSerial" type="button">ต่อ USB</button>
           <button class="btn" id="btnBle" type="button">ต่อบลูทูธ</button>
         </div>
@@ -278,7 +284,7 @@ pre.hex { white-space: pre; } pre.log { white-space: pre-wrap; min-height: 44px;
     </section>
   </main>
 
-  <div class="st"><span><i class="dot" id="linkDot"></i>ไม่ได้ต่อ ECU</span><span>ข้อมูล: <b id="srcName">จำลอง</b> · <button id="simBtn" type="button">ปิด</button></span></div>
+  <div class="st"><span><i class="dot" id="linkDot"></i>ไม่ได้ต่อ ECU</span><span>ข้อมูล: <b id="srcName">ไม่มี</b> · <button id="simBtn" type="button">ต่อ</button></span></div>
 </div>
 
 <script>
@@ -464,44 +470,112 @@ pre.hex { white-space: pre; } pre.log { white-space: pre-wrap; min-height: 44px;
   function nearest(axis, v) { var bi = 0; axis.forEach(function (x, i) { if (Math.abs(x - v) < Math.abs(axis[bi] - v)) bi = i; }); return bi; }
 
   /* ---------- live (simulated) ---------- */
-  var sim = true, t = 0, rpm = 1300, spd = 0, maxSpd = 0, lastLive = [];
+  var linked = false, maxSpd = 0, lastLive = [], pollTimer = null, ws = null, lastOk = 0, fails = 0, busy = false;
   var simBtn = $("#simBtn");
-  simBtn.addEventListener("click", function () {
-    sim = !sim; simBtn.textContent = sim ? "ปิด" : "เปิด"; $("#srcName").textContent = sim ? "จำลอง" : "หยุด";
-  });
+  var CK = "ecu-gauge-link";
+  var cfg = { addr: "192.168.4.1", path: "/data" };
+  try { var sc = JSON.parse(localStorage.getItem(CK) || "null"); if (sc && sc.addr) cfg = sc; } catch (e) {}
+  $("#gAddr").value = cfg.addr; $("#gPath").value = cfg.path;
   function set(id, v) { $(id).textContent = v; }
 
-  function tick() {
-    if (!sim) return;
-    t += 0.1;
-    var tps = clamp(38 + 34 * Math.sin(t * 0.45) + 22 * Math.sin(t * 1.25), 0, 100);
-    if (tps < 3) tps = 0;
-    var target = 1300 + (tps / 100) * 8200;
-    rpm += (target - rpm) * 0.07;
-    spd += ((rpm - 1300) / 8200 * 118 - spd) * 0.03;
-    spd = Math.max(0, spd); maxSpd = Math.max(maxSpd, spd);
-    var map = 28 + tps * 0.72;
-    var afr = 14.7 - tps / 100 * 2.1 + Math.sin(t * 3) * 0.15;
-    var pw = lookup(maps.fuel, rpm, tps), ign = lookup(maps.ign, rpm, tps);
+  /* ชื่อคีย์ที่รับได้จากเกจ (ใช้ตัวแรกที่เจอ) */
+  var KEYS = {
+    rpm: ["rpm", "RPM", "engine_rpm"],
+    tps: ["tps", "TPS", "tps_pct", "throttle"],
+    map: ["map", "MAP", "map_kpa", "mapKpa"],
+    spd: ["spd", "speed", "gps_speed", "gpsSpeed", "kmh", "vss"],
+    afr: ["afr", "AFR"],
+    tmp: ["ect", "ECT", "wtemp", "temp", "coolant", "w_temp"],
+    vol: ["batt", "bat", "vbat", "volt", "voltage", "battery"],
+    pw: ["inj", "pw", "inj_ms", "injms", "injector"],
+    ign: ["ign", "ignition", "adv", "advance", "spark"],
+    gear: ["gear"]
+  };
+  function pick(o, names) {
+    for (var i = 0; i < names.length; i++) { var v = o[names[i]]; if (v !== undefined && v !== null && v !== "" && isFinite(+v) || (names === KEYS.gear && v != null)) return v; }
+    return null;
+  }
+  function dash(id) { set(id, "–"); }
 
-    set("#v-spd", Math.round(spd));
-    set("#v-rpm", Math.round(rpm)); setRpm(rpm);
-    set("#v-tps", tps.toFixed(0)); setTps(tps);
-    set("#v-map", map.toFixed(0)); setMap(map);
-    set("#v-max", Math.round(maxSpd));
-    set("#v-gear", spd < 4 ? "N" : "IN GEAR");
-    set("#v-tmp", (88 + Math.sin(t * 0.1) * 3).toFixed(0));
-    set("#v-vol", (13.9 + Math.sin(t * 2) * 0.35 + (rpm > 3000 ? 0.3 : 0)).toFixed(1));
-    set("#v-afr", afr.toFixed(1));
-    set("#v-pw", pw.toFixed(2)); set("#v-ign", ign.toFixed(1));
+  function apply(o) {
+    var rpm = pick(o, KEYS.rpm), tps = pick(o, KEYS.tps), map = pick(o, KEYS.map), spd = pick(o, KEYS.spd);
+    var afr = pick(o, KEYS.afr), tmp = pick(o, KEYS.tmp), vol = pick(o, KEYS.vol), pw = pick(o, KEYS.pw), ign = pick(o, KEYS.ign), gear = pick(o, KEYS.gear);
+    if (rpm != null) { rpm = +rpm; set("#v-rpm", Math.round(rpm)); setRpm(rpm); } else dash("#v-rpm");
+    if (tps != null) { tps = +tps; set("#v-tps", tps.toFixed(0)); setTps(tps); } else dash("#v-tps");
+    if (map != null) { map = +map; set("#v-map", map.toFixed(0)); setMap(map); } else dash("#v-map");
+    if (spd != null) { spd = +spd; maxSpd = Math.max(maxSpd, spd); set("#v-spd", Math.round(spd)); set("#v-max", Math.round(maxSpd)); } else { dash("#v-spd"); }
+    set("#v-gear", gear != null ? gear : (spd != null ? (spd < 4 ? "N" : "IN GEAR") : "–"));
+    afr != null ? set("#v-afr", (+afr).toFixed(1)) : dash("#v-afr");
+    tmp != null ? set("#v-tmp", (+tmp).toFixed(0)) : dash("#v-tmp");
+    vol != null ? set("#v-vol", (+vol).toFixed(1)) : dash("#v-vol");
+    /* ระยะฉีด/องศาไฟ: ใช้ค่าจริงจาก ECU ถ้าเกจส่งมา ถ้าไม่ส่งก็ไม่เดา */
+    pw != null ? set("#v-pw", (+pw).toFixed(2)) : dash("#v-pw");
+    ign != null ? set("#v-ign", (+ign).toFixed(1)) : dash("#v-ign");
 
     lastLive.forEach(function (c) { c.classList.remove("live"); }); lastLive = [];
-    var ci = nearest(TPS, tps), cj = nearest(RPM, rpm);
-    [edFuel, edIgn].forEach(function (ed) {
-      var c = ed.cells[ci * RPM.length + cj]; c.classList.add("live"); lastLive.push(c);
-    });
+    if (rpm != null && tps != null) {
+      var ci = nearest(TPS, tps), cj = nearest(RPM, rpm);
+      [edFuel, edIgn].forEach(function (ed) { var c = ed.cells[ci * RPM.length + cj]; c.classList.add("live"); lastLive.push(c); });
+    }
   }
-  setInterval(tick, 100); tick();
+  function clearLive() {
+    ["#v-spd", "#v-rpm", "#v-tps", "#v-map", "#v-afr", "#v-tmp", "#v-vol", "#v-pw", "#v-ign", "#v-gear"].forEach(dash);
+    setRpm(0); setTps(0); setMap(0);
+    lastLive.forEach(function (c) { c.classList.remove("live"); }); lastLive = [];
+  }
+  function state(on, label) {
+    linked = on;
+    $("#linkDot").classList.toggle("on", on);
+    $("#linkDot").nextSibling.textContent = on ? "ต่อเกจแล้ว" : "ไม่ได้ต่อ ECU";
+    $("#srcName").textContent = label;
+    simBtn.textContent = (pollTimer || ws) ? "ตัด" : "ต่อ";
+    mark("#c-link", on, "ผ่าน", "ยังไม่ผ่าน"); flashBtn();
+    $("#liveNote").textContent = on ? "ค่าทั้งหมดมาจากเกจที่อ่านจาก ECU จริง ค่าที่เกจไม่ได้ส่งมาแสดงเป็น –" : "ยังไม่ได้ต่อเกจ ไปที่แท็บ \"ต่อ/สำรอง\" ใส่ที่อยู่เกจแล้วกดต่อ";
+  }
+  function baseUrl() {
+    var a = cfg.addr.trim().replace(/\/+$/, "");
+    if (!/^(https?|wss?):\/\//i.test(a)) a = "http://" + a;
+    return a;
+  }
+  function stop(label) {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    if (ws) { try { ws.onclose = null; ws.close(); } catch (e) {} ws = null; }
+    state(false, label || "ไม่มี"); clearLive();
+  }
+  function poll() {
+    if (busy) return; busy = true;
+    var ctl = ("AbortController" in window) ? new AbortController() : null;
+    var to = setTimeout(function () { if (ctl) ctl.abort(); }, 1500);
+    fetch(baseUrl() + cfg.path, { cache: "no-store", signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (o) { fails = 0; lastOk = Date.now(); if (!linked) { state(true, "เกจ " + cfg.addr); msg("#linkMsg", "ต่อเกจแล้ว"); } apply(o); })
+      .catch(function (e) {
+        fails++;
+        if (fails === 3) { state(false, "ต่อเกจไม่ได้"); clearLive(); msg("#linkMsg", "ติดต่อเกจไม่ได้ ตรวจว่ามือถือต่อ WiFi เกจอยู่ และที่อยู่/พาธถูก (" + (e && e.message ? e.message : "ผิดพลาด") + ")"); }
+      })
+      .then(function () { clearTimeout(to); busy = false; });
+  }
+  function startGauge() {
+    stop(); fails = 0; busy = false;
+    var b = baseUrl();
+    if (location.protocol === "https:" && /^(http|ws):\/\//i.test(b)) {
+      msg("#linkMsg", "หน้านี้เปิดจาก https เรียกเกจที่เป็น http ไม่ได้ ให้เปิดหน้านี้จากตัวเกจหรือผ่าน http"); return;
+    }
+    msg("#linkMsg", "กำลังต่อเกจ…"); $("#srcName").textContent = "กำลังต่อ…";
+    if (/^wss?:\/\//i.test(b)) {
+      try {
+        ws = new WebSocket(b + cfg.path);
+        ws.onopen = function () { state(true, "เกจ " + cfg.addr); msg("#linkMsg", "ต่อเกจแล้ว"); };
+        ws.onmessage = function (ev) { try { apply(JSON.parse(ev.data)); } catch (e) {} };
+        ws.onclose = function () { ws = null; state(false, "หลุด"); clearLive(); msg("#linkMsg", "การเชื่อมต่อหลุด"); };
+      } catch (e) { msg("#linkMsg", "เปิด WebSocket ไม่ได้"); }
+      simBtn.textContent = "ตัด";
+    } else {
+      pollTimer = setInterval(poll, 150); poll(); simBtn.textContent = "ตัด";
+    }
+  }
+  simBtn.addEventListener("click", function () { (pollTimer || ws) ? stop() : startGauge(); });
+  clearLive(); state(false, "ไม่มี");
 
   /* ---------- flash: choose file, check, simulated write ---------- */
   var crcT = [];
@@ -534,7 +608,7 @@ pre.hex { white-space: pre; } pre.log { white-space: pre-wrap; min-height: 44px;
       $("#hex").textContent = hexdump(s.bytes, 256) + (s.size > 256 ? "\n… (แสดง 256 ไบต์แรก)" : "");
     }
     mark("#c-file", !!(s && s.size > 0), "ผ่าน", "ยังไม่ผ่าน");
-    mark("#c-link", false, "ผ่าน", "ยังไม่ผ่าน");
+    mark("#c-link", linked, "ผ่าน", "ยังไม่ผ่าน");
     flashBtn();
   }
   function loadFile(f) {
@@ -591,6 +665,12 @@ pre.hex { white-space: pre; } pre.log { white-space: pre-wrap; min-height: 44px;
 
   /* ---------- settings ---------- */
   function msg(id, text) { $(id).textContent = text; }
+  $("#btnGauge").addEventListener("click", function () {
+    cfg = { addr: $("#gAddr").value.trim() || "192.168.4.1", path: ($("#gPath").value.trim() || "/data").replace(/^(?!\/)/, "/") };
+    $("#gAddr").value = cfg.addr; $("#gPath").value = cfg.path;
+    try { localStorage.setItem(CK, JSON.stringify(cfg)); } catch (e) {}
+    startGauge(); show("live");
+  });
   $("#btnSerial").addEventListener("click", function () {
     if (!("serial" in navigator)) { msg("#linkMsg", "เบราว์เซอร์หรือกรอบนี้ไม่รองรับ Web Serial นำโค้ดไปโฮสต์เป็นเว็บ HTTPS ของคุณแล้วเปิดด้วย Chrome Android"); return; }
     navigator.serial.requestPort().then(function () { msg("#linkMsg", "ได้พอร์ตแล้ว แต่โปรโตคอลของ ECU คุณยังไม่ได้ใส่ในเว็บนี้"); })
