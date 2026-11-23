@@ -4,705 +4,438 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17181a">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<style>html{color-scheme:dark;background:#17181a;padding-top:env(safe-area-inset-top,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="icon" href="/icon.png">
 <title>KTEC ECU</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
 <style>
-/* Layout: หน้าตาเหมือนโปรแกรมจูนของช่าง — แบนทึบ ขอบเหลี่ยม แถบบาร์แบ่งช่องแบบเข็มไมล์ มีสเกลตัวเลขจริง แถบสถานะล่างจอ */
-:root {
-  --bg: #17181a;
-  --surf: #1f2124;
-  --line: #34373c;
-  --fg: #dcdcd6;
-  --dim: #868a90;
-  --hi: #e6b422;
-  --red: #d8402e;
-  --ok: #6fbf73;
-  --off: #2a2d31;
-  --f-body: "Sarabun", system-ui, sans-serif;
-  --f-num: "Share Tech Mono", ui-monospace, monospace;
-  color-scheme: dark;
-}
-* { box-sizing: border-box; }
-html, body { min-height: 100%; }
-body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--f-body);
-  font-size: 15px;
-  padding-block: 0;
-  padding-left: max(14px, env(safe-area-inset-left, 0px));
-  padding-right: max(14px, env(safe-area-inset-right, 0px));
-  -webkit-tap-highlight-color: transparent;
-}
-button { font: inherit; color: inherit; }
-.app { max-width: 760px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
-main { flex: 1; padding-block: 14px 18px; }
-section[hidden] { display: none !important; }
-
-header { display: flex; align-items: baseline; gap: 10px; padding-top: 10px; }
-header h1 { margin: 0; font-size: 17px; font-weight: 700; }
-header span { color: var(--dim); font-size: 12px; }
-
-.tabs { display: flex; border-bottom: 1px solid var(--line); margin-top: 8px; overflow-x: auto; }
-.tabs button { all: unset; cursor: pointer; white-space: nowrap; padding: 10px 12px 9px; color: var(--dim); font-weight: 600; font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
-.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--hi); }
-.tabs button:focus-visible, .btn:focus-visible, input:focus-visible, textarea:focus-visible, .st button:focus-visible { outline: 2px solid var(--hi); outline-offset: 1px; }
-
-.k { color: var(--dim); font-size: 12px; }
-
-/* speed */
-.spdrow { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-.big { font-family: var(--f-num); font-size: clamp(76px, 24vw, 128px); line-height: .9; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.u { font-family: var(--f-num); color: var(--dim); font-size: 14px; margin-left: 6px; }
-.gear { text-align: right; }
-.gear b { display: block; font-family: var(--f-num); font-weight: 400; font-size: 20px; margin-top: 2px; }
-
-/* segmented bars */
-.chan { padding: 12px 0 10px; border-bottom: 1px solid var(--line); }
-.chan .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-.chan .rd { font-family: var(--f-num); font-size: 22px; font-variant-numeric: tabular-nums; }
-.chan .rd i { font-style: normal; font-size: 12px; color: var(--dim); margin-left: 4px; }
-.bar { display: flex; gap: 2px; }
-.bar span { flex: 1; background: var(--off); }
-.bar.rpm { height: 30px; } .bar.thin { height: 14px; }
-.bar span.on { background: var(--hi); }
-.bar span.red { background: #4a2a26; } .bar span.red.on { background: var(--red); }
-.ticks { position: relative; height: 16px; margin-top: 4px; font-family: var(--f-num); font-size: 11px; color: var(--dim); }
-.ticks span { position: absolute; top: 0; transform: translateX(-50%); }
-.ticks span:first-child { transform: none; } .ticks span:last-child { transform: translateX(-100%); }
-
-/* readouts */
-.data { margin: 0; display: grid; grid-template-columns: 1fr; column-gap: 32px; }
-@media (min-width: 560px) { .data { grid-template-columns: 1fr 1fr; } }
-.data div { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line); }
-.data dt { color: var(--dim); font-size: 14px; }
-.data dd { margin: 0; font-family: var(--f-num); font-size: 19px; font-variant-numeric: tabular-nums; }
-.data dd i { font-style: normal; color: var(--dim); font-size: 12px; margin-left: 5px; }
-.data .hl dd { color: var(--hi); }
-.note { color: var(--dim); font-size: 13px; line-height: 1.6; margin: 12px 0 0; }
-
-/* map editor */
-.sub { color: var(--dim); font-size: 13px; margin: 0 0 10px; line-height: 1.5; }
-.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
-.btn { border: 1px solid #4a4e55; background: var(--surf); border-radius: 2px; padding: 8px 12px; min-height: 42px; cursor: pointer; font-weight: 600; font-size: 14px; }
-.btn:active { background: #2b2e33; }
-.btn.act { background: var(--hi); color: #151515; border-color: var(--hi); }
-.btn.pri { border-color: var(--hi); color: var(--hi); }
-.btn.neg { color: #e5806f; }
-.btn.pos { color: #8fd193; }
-.seg { display: flex; }
-.seg .btn { border-radius: 0; margin-left: -1px; font-family: var(--f-num); font-size: 15px; }
-.seg .btn:first-child { margin-left: 0; border-radius: 2px 0 0 2px; } .seg .btn:last-child { border-radius: 0 2px 2px 0; }
-.setbox { display: flex; gap: 6px; }
-.setbox input { width: 84px; background: var(--bg); border: 1px solid #4a4e55; border-radius: 2px; color: var(--fg); padding: 0 10px; font-family: var(--f-num); font-size: 16px; min-height: 42px; }
-.tablewrap { overflow: auto; border: 1px solid var(--line); max-height: 56vh; }
-.tablewrap.sel { touch-action: none; }
-table { border-collapse: collapse; font-family: var(--f-num); font-size: 13px; font-variant-numeric: tabular-nums; user-select: none; -webkit-user-select: none; }
-th, td { min-width: 56px; height: 38px; text-align: center; padding: 0; border: 1px solid #101113; }
-thead th, tbody th { background: #26292d; color: var(--dim); font-weight: 400; position: sticky; z-index: 1; }
-thead th { top: 0; } tbody th { left: 0; }
-thead th:first-child { left: 0; z-index: 3; font-size: 10px; }
-thead th { z-index: 2; }
-td { cursor: pointer; position: relative; }
-td.sel { outline: 2px solid #fff; outline-offset: -2px; z-index: 1; }
-td.live::after { content: ""; position: absolute; inset: 2px; border: 2px dashed #fff; pointer-events: none; animation: blink 1s steps(2, jump-none) infinite; }
-@keyframes blink { 50% { opacity: .2; } }
-.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim); margin-top: 8px; }
-.legend i { width: 140px; height: 8px; background: linear-gradient(90deg, #27403f, #b99a2c, #c2542d); }
-
-/* settings */
-.blk { padding: 16px 0; border-bottom: 1px solid var(--line); }
-.blk:first-child { padding-top: 4px; }
-.blk h2 { margin: 0 0 6px; font-size: 16px; }
-.blk p { margin: 0 0 12px; color: var(--dim); line-height: 1.65; font-size: 14px; }
-textarea { width: 100%; min-height: 110px; background: var(--bg); color: var(--ok); border: 1px solid #4a4e55; border-radius: 2px; padding: 8px; font-family: var(--f-num); font-size: 12px; resize: vertical; }
-.row { display: flex; gap: 6px; flex-wrap: wrap; }
-.msg { margin-top: 10px; font-size: 13px; color: var(--hi); line-height: 1.5; min-height: 1.5em; }
-
-/* flash */
-label.btn { display: inline-flex; align-items: center; }
-.drop { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px dashed #4a4e55; padding: 12px; }
-.drop.over { border-color: var(--hi); background: #1d1c14; }
-#fname { word-break: break-all; min-width: 0; }
-pre.hex, pre.log { font-family: var(--f-num); font-size: 12px; line-height: 1.5; color: var(--dim); background: var(--bg); border: 1px solid var(--line); padding: 8px; margin: 10px 0 0; overflow: auto; max-height: 170px; }
-pre.hex { white-space: pre; } pre.log { white-space: pre-wrap; min-height: 44px; }
-.chk { list-style: none; margin: 0 0 6px; padding: 0; }
-.chk li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-.chk .mk { font-family: var(--f-num); font-size: 13px; color: var(--red); white-space: nowrap; }
-.chk .mk.pass { color: var(--ok); }
-.ck { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; font-size: 14px; line-height: 1.5; }
-.ck input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--hi); flex: none; }
-.btn:disabled { opacity: .4; cursor: not-allowed; }
-.warn { border-left: 3px solid var(--red); padding: 2px 0 2px 10px; color: var(--fg); font-size: 13px; line-height: 1.6; margin: 0 0 12px; }
-
-/* status bar */
-.st { position: sticky; bottom: 0; margin-inline: calc(-1 * max(14px, env(safe-area-inset-left, 0px))); padding: 7px max(14px, env(safe-area-inset-right, 0px)) calc(7px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); background: #101113; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--dim); }
-.st button { all: unset; cursor: pointer; color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
-.st b { font-weight: 600; color: var(--fg); }
-.dot { display: inline-block; width: 7px; height: 7px; background: var(--dim); margin-right: 6px; }
-.dot.on { background: var(--ok); }
-@media (prefers-reduced-motion: reduce) { td.live::after { animation: none; } }
+:root{--bg:#17181a;--surf:#1f2124;--line:#34373c;--fg:#dcdcd6;--dim:#868a90;--hi:#e6b422;--red:#d8402e;--ok:#6fbf73;--off:#2a2d31;
+--f-body:"Sarabun","Noto Sans Thai",system-ui,sans-serif;--f-num:"Share Tech Mono",ui-monospace,Consolas,monospace;color-scheme:dark}
+*{box-sizing:border-box}
+html{background:var(--bg);padding-top:env(safe-area-inset-top,0)}
+html,body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;padding:0 max(14px,env(safe-area-inset-right)) 0 max(14px,env(safe-area-inset-left));-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+button,input{font:inherit;color:inherit}
+.app{max-width:900px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;padding:14px 0 18px}
+header{display:flex;align-items:baseline;gap:10px;padding-top:10px}
+header h1{margin:0;font-size:17px;font-weight:700}
+header span{color:var(--dim);font-size:12px}
+.tabs{display:flex;border-bottom:1px solid var(--line);margin-top:8px;overflow-x:auto}
+.tabs button{all:unset;cursor:pointer;white-space:nowrap;padding:10px 12px 9px;color:var(--dim);font-weight:600;font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--hi)}
+.tabs button:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--hi);outline-offset:1px}
+.k{color:var(--dim);font-size:12px}
+.spdrow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.big{font-family:var(--f-num);font-size:clamp(76px,24vw,128px);line-height:.9;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.u{font-family:var(--f-num);color:var(--dim);font-size:14px;margin-left:6px}
+.chan{padding:12px 0 10px;border-bottom:1px solid var(--line)}
+.chan .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:10px}
+.chan .rd{font-family:var(--f-num);font-size:22px;font-variant-numeric:tabular-nums}
+.chan .rd i,.data dd i{font-style:normal;font-size:12px;color:var(--dim);margin-left:4px}
+.chan .sub2{font-family:var(--f-num);font-size:12px;color:var(--dim)}
+.bar{display:flex;gap:2px}.bar span{flex:1;background:var(--off)}
+.bar.rpm{height:30px}.bar.thin{height:14px}
+.bar span.on{background:var(--hi)}
+.bar span.red{background:#4a2a26}.bar span.red.on{background:var(--red)}
+.ticks{position:relative;height:16px;margin-top:4px;font-family:var(--f-num);font-size:11px;color:var(--dim)}
+.ticks span{position:absolute;top:0;transform:translateX(-50%)}
+.ticks span:first-child{transform:none}.ticks span:last-child{transform:translateX(-100%)}
+.data{margin:0;display:grid;grid-template-columns:1fr;column-gap:32px}
+@media(min-width:560px){.data{grid-template-columns:1fr 1fr}}
+.data div{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line)}
+.data dt{color:var(--dim);font-size:14px}
+.data dd{margin:0;font-family:var(--f-num);font-size:19px;font-variant-numeric:tabular-nums}
+.data .hl dd{color:var(--hi)}
+.note{color:var(--dim);font-size:13px;line-height:1.6;margin:12px 0 0}
+.sub{color:var(--dim);font-size:13px;margin:0 0 10px;line-height:1.5}
+.tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.btn{border:1px solid #4a4e55;background:var(--surf);border-radius:2px;padding:8px 12px;min-height:42px;cursor:pointer;font-weight:600;font-size:14px}
+.btn:active{background:#2b2e33}
+.btn.act{background:var(--hi);color:#151515;border-color:var(--hi)}
+.btn.pri{border-color:var(--hi);color:var(--hi)}
+.btn.neg{color:#e5806f}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.seg{display:flex}.seg .btn{border-radius:0;margin-left:-1px;font-family:var(--f-num);font-size:15px}
+.seg .btn:first-child{margin-left:0;border-radius:2px 0 0 2px}.seg .btn:last-child{border-radius:0 2px 2px 0}
+.tablewrap{overflow:auto;border:1px solid var(--line);max-height:60vh}
+table{border-collapse:collapse;font-family:var(--f-num);font-size:12px;font-variant-numeric:tabular-nums}
+th,td{min-width:46px;height:30px;text-align:center;padding:0 2px;border:1px solid #101113}
+thead th,tbody th{background:#26292d;color:var(--dim);font-weight:400;position:sticky;z-index:1}
+thead th{top:0}tbody th{left:0;min-width:58px}
+thead th:first-child{left:0;z-index:3;font-size:10px}thead th{z-index:2}
+td{position:relative}
+td.live::after{content:"";position:absolute;inset:2px;border:2px dashed #fff;pointer-events:none;animation:blink 1s steps(2,jump-none) infinite}
+@keyframes blink{50%{opacity:.2}}
+.legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin-top:8px}
+.legend i{width:140px;height:8px;background:linear-gradient(90deg,#27403f,#b99a2c,#c2542d)}
+.blk{padding:16px 0;border-bottom:1px solid var(--line)}
+.blk:first-child{padding-top:4px}
+.blk h2{margin:0 0 6px;font-size:16px}
+.blk p{margin:0 0 12px;color:var(--dim);line-height:1.65;font-size:14px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.msg{margin-top:10px;font-size:13px;color:var(--hi);line-height:1.5;min-height:1.5em;word-break:break-word}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{padding:3px 9px;border-radius:12px;background:#26292d;font-size:12px;color:var(--dim)}
+.chip.ok{background:#16301c;color:#8fd193}.chip.bad{background:#3d1a16;color:#e5806f}
+.fl{border:1px solid var(--line);max-height:300px;overflow:auto}
+.fi{display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid var(--line);flex-wrap:wrap}
+.fi:first-child{border-top:0}
+.fi.sel{background:#1d1c14;box-shadow:inset 3px 0 0 var(--hi)}
+.fi .fn{flex:1;min-width:130px;word-break:break-all;font-family:var(--f-num);font-size:14px}
+.fi .fs{color:var(--dim);font-size:12px;display:block}
+.fi .btn{min-height:36px;padding:5px 10px}
+.empty{padding:14px 10px;color:var(--dim);font-size:13px}
+.chk{list-style:none;margin:0 0 6px;padding:0}
+.chk li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.chk .mk{font-family:var(--f-num);font-size:13px;color:var(--red);white-space:nowrap}
+.chk .mk.pass{color:var(--ok)}
+.ck{display:flex;gap:10px;align-items:flex-start;padding:8px 0;font-size:14px;line-height:1.5}
+.ck input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--hi);flex:none}
+.warn{border-left:3px solid var(--red);padding:2px 0 2px 10px;color:var(--fg);font-size:13px;line-height:1.6;margin:0 0 12px}
+input[type=text]{background:var(--bg);border:1px solid #4a4e55;border-radius:2px;padding:0 10px;font-family:var(--f-num);font-size:16px;min-height:42px;width:140px}
+pre.log{font-family:var(--f-num);font-size:12px;line-height:1.5;color:var(--dim);background:var(--bg);border:1px solid var(--line);padding:8px;margin:10px 0 0;white-space:pre-wrap;overflow:auto;max-height:120px}
+.st{position:sticky;bottom:0;margin-inline:calc(-1*max(14px,env(safe-area-inset-left)));padding:7px max(14px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));background:#101113;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--dim)}
+.st b{font-weight:600;color:var(--fg)}
+.dot{display:inline-block;width:7px;height:7px;background:var(--dim);margin-right:6px}
+.dot.on{background:var(--ok)}.dot.wait{background:var(--hi)}
+@media(prefers-reduced-motion:reduce){td.live::after{animation:none}}
 </style>
-
 </head>
 <body>
 <div class="app">
-  <header><h1>KTEC ECU</h1><span>อ่านค่าจริงจากเกจ</span></header>
+<header><h1>KTEC ECU</h1><span>ข้อมูลจริงจากเกจ</span></header>
+<nav class="tabs" role="tablist">
+<button role="tab" data-tab="live" aria-selected="true" type="button">ค่าสด</button>
+<button role="tab" data-tab="map" aria-selected="false" type="button">แมพ</button>
+<button role="tab" data-tab="files" aria-selected="false" type="button">ไฟล์/อัด</button>
+<button role="tab" data-tab="link" aria-selected="false" type="button">เชื่อมต่อ</button>
+</nav>
 
-  <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="live" aria-selected="true" type="button">ค่าสด</button>
-    <button role="tab" data-tab="fuel" aria-selected="false" type="button">น้ำมัน</button>
-    <button role="tab" data-tab="ign" aria-selected="false" type="button">ไฟ</button>
-    <button role="tab" data-tab="flash" aria-selected="false" type="button">อัดไฟล์</button>
-    <button role="tab" data-tab="set" aria-selected="false" type="button">ต่อ/สำรอง</button>
-  </nav>
+<main>
+<section id="tab-live">
+<p class="warn" id="offgauge" hidden>หน้านี้ต้องเปิดจากตัวเกจ: ต่อ WiFi ของเกจ แล้วเปิด http://192.168.4.1/ecu</p>
+<div class="spdrow"><div><div class="k">ความเร็ว</div><div><span class="big" id="v-spd">–</span><span class="u">km/h</span></div></div>
+<div style="text-align:right"><div class="k">ความเร็วสูงสุด</div><div class="rd" style="font-family:var(--f-num);font-size:20px"><span id="v-max">–</span><span class="u">km/h</span></div></div></div>
+<div class="chan"><div class="head"><span class="k">รอบเครื่อง</span><span class="rd"><span id="v-rpm">–</span><i>rpm</i></span></div>
+<div class="bar rpm" id="bar-rpm"></div><div class="ticks" id="tk-rpm"></div></div>
+<div class="chan"><div class="head"><span class="k">TPS คันเร่ง</span><span class="rd"><span id="v-tps">–</span><i>%</i></span></div>
+<div class="bar thin" id="bar-tps"></div><div class="ticks" id="tk-tps"></div>
+<div class="sub2" style="margin-top:2px">แรงดัน TPS <span id="v-tpsv">–</span> V</div></div>
+<div class="chan"><div class="head"><span class="k">MAP</span><span class="rd"><span id="v-map">–</span><i>kPa</i></span></div>
+<div class="bar thin" id="bar-map"></div><div class="ticks" id="tk-map"></div></div>
+<dl class="data" style="margin-top:6px">
+<div class="hl"><dt>ระยะฉีด</dt><dd><span id="v-pw">–</span><i>ms</i></dd></div>
+<div class="hl"><dt>องศาไฟ</dt><dd><span id="v-ign">–</span><i>°BTDC</i></dd></div>
+<div><dt>O2 (AFR)</dt><dd id="v-afr">–</dd></div>
+<div><dt>น้ำหล่อเย็น ECT</dt><dd><span id="v-tmp">–</span><i>°C</i></dd></div>
+<div><dt>อากาศเข้า IAT</dt><dd><span id="v-iat">–</span><i>°C</i></dd></div>
+<div><dt>แบตเตอรี่</dt><dd><span id="v-vol">–</span><i>V</i></dd></div>
+</dl>
+<p class="note">ทุกค่ามาจาก ECU ผ่านเกจ ช่องไหนอ่านไม่ได้ (ไม่ต่อ ECU หรือเซ็นเซอร์ไม่ตอบ) จะแสดงเป็น – ไม่มีการเดาค่า</p>
+</section>
 
-  <main>
-    <section id="tab-live" aria-label="ค่าสด">
-      <div class="spdrow">
-        <div><div class="k">ความเร็ว GPS</div><div><span class="big" id="v-spd">0</span><span class="u">km/h</span></div></div>
-        <div class="gear"><div class="k">เกียร์</div><b id="v-gear">N</b></div>
-      </div>
+<section id="tab-map" hidden>
+<p class="sub">ตารางที่เกจบันทึกจากรถจริงขณะขับ: แถวคือรอบเครื่อง คอลัมน์คือ TPS % ช่องที่ ECU อยู่ตอนนี้มีกรอบกะพริบ ดูอย่างเดียว ไม่ได้เขียนกลับ ECU</p>
+<div class="tools">
+<div class="seg" id="sheets"><button class="btn" type="button" data-s="0">INJ</button><button class="btn act" type="button" data-s="1">AFR</button><button class="btn" type="button" data-s="2">IGT</button></div>
+<button class="btn" id="btnMapReload" type="button">รีเฟรช</button>
+<button class="btn" id="btnPause" type="button">หยุดบันทึก</button>
+<button class="btn" id="btnExport" type="button">ส่งออกไฟล์</button>
+</div>
+<div class="tablewrap" id="wrap-map"></div>
+<div class="legend"><span>น้อย</span><i></i><span>มาก</span><span id="mapUnit" style="margin-left:auto"></span></div>
+<div class="msg" id="mapMsg"></div>
+</section>
 
-      <div class="chan">
-        <div class="head"><span class="k">รอบเครื่อง</span><span class="rd"><span id="v-rpm">0</span><i>rpm</i></span></div>
-        <div class="bar rpm" id="bar-rpm"></div><div class="ticks" id="tk-rpm"></div>
-      </div>
-      <div class="chan">
-        <div class="head"><span class="k">TPS คันเร่ง</span><span class="rd"><span id="v-tps">0</span><i>%</i></span></div>
-        <div class="bar thin" id="bar-tps"></div><div class="ticks" id="tk-tps"></div>
-      </div>
-      <div class="chan">
-        <div class="head"><span class="k">MAP</span><span class="rd"><span id="v-map">0</span><i>kPa</i></span></div>
-        <div class="bar thin" id="bar-map"></div><div class="ticks" id="tk-map"></div>
-      </div>
+<section id="tab-files" hidden>
+<div class="blk">
+<h2>1. พื้นที่เก็บไฟล์บนเกจ</h2>
+<div class="chips" id="chips"></div>
+<div class="fl" id="fl"><div class="empty">กำลังอ่านรายการไฟล์…</div></div>
+<div class="row" style="margin-top:8px"><button class="btn" id="btnScan" type="button">สแกนไฟล์ใหม่</button></div>
+<div class="msg" id="fm"></div>
+</div>
+<div class="blk">
+<h2>2. อัปโหลดไฟล์ .bin เข้าเกจ</h2>
+<p>ไฟล์เก็บในหน่วยความจำของเกจก่อน ถ้าไฟล์ใหญ่เกินจะลงการ์ด SD ชื่อไฟล์ใช้ได้เฉพาะ A-Z 0-9 . _ - ไม่เกิน 39 ตัว</p>
+<div class="row"><label class="btn pri" for="file">เลือกไฟล์</label><input type="file" id="file" accept=".bin" hidden>
+<button class="btn" id="btnUp" type="button" disabled>อัปโหลด</button></div>
+<dl class="data" id="finfo" hidden style="margin-top:8px">
+<div><dt>ชื่อ</dt><dd id="fi-name" style="font-size:14px;word-break:break-all">-</dd></div>
+<div><dt>ขนาด</dt><dd id="fi-size">-</dd></div>
+<div><dt>CRC32</dt><dd id="fi-crc">-</dd></div></dl>
+<div class="chan" style="border:0;padding-bottom:0" id="upbox" hidden><div class="head"><span class="k">อัปโหลด</span><span class="rd"><span id="upct">0</span><i>%</i></span></div><div class="bar thin" id="bar-up"></div></div>
+<div class="msg" id="um"></div>
+</div>
+<div class="blk" style="border-bottom:0">
+<h2>3. อัดลง ECU</h2>
+<p class="warn">เป็นการเขียน ECU จริง ถ้าไฟล์ผิดหรือไฟดับระหว่างอัด ECU อาจใช้งานไม่ได้ ตรวจรายการด้านล่างให้ผ่านทุกข้อก่อน เกจจะตรวจเงื่อนไขซ้ำอีกชั้นหนึ่งและปฏิเสธเองถ้าไม่ผ่าน</p>
+<ul class="chk">
+<li><span>เลือกไฟล์ที่จะอัด: <b id="selname">ยังไม่ได้เลือก</b></span><span class="mk" id="c-file">ยังไม่ผ่าน</span></li>
+<li><span>ต่อ ECU อยู่</span><span class="mk" id="c-link">ยังไม่ผ่าน</span></li>
+<li><span>เครื่องดับ (รอบ 0)</span><span class="mk" id="c-off">ยังไม่ผ่าน</span></li>
+<li><span>เกจอนุญาตให้อัด <span class="k" id="why"></span></span><span class="mk" id="c-gauge">ยังไม่ผ่าน</span></li>
+</ul>
+<label class="ck" for="ck1"><input type="checkbox" id="ck1"><span>สำรองแมพเดิมออกจาก ECU ไว้แล้ว</span></label>
+<label class="ck" for="ck2"><input type="checkbox" id="ck2"><span>แบตเต็ม สายต่อแน่น และจะไม่ดับเครื่องระหว่างอัด</span></label>
+<div class="row" style="margin:8px 0"><input type="text" id="cf" placeholder="พิมพ์ FLASH" autocapitalize="characters" spellcheck="false" aria-label="พิมพ์ FLASH เพื่อยืนยัน">
+<button class="btn neg" id="btnFlash" type="button" disabled>อัดลง ECU จริง</button>
+<button class="btn" id="btnStop" type="button" hidden>หยุด</button></div>
+<div class="chan" style="border:0;padding-bottom:0" id="runbox" hidden>
+<div class="head"><span class="k" id="fstep">รอ</span><span class="rd"><span id="fpct">0</span><i>%</i></span></div>
+<div class="bar thin" id="bar-flash"></div><div class="ticks" id="tk-flash"></div>
+<pre class="log" id="flog"></pre></div>
+<div class="msg" id="fmsg"></div>
+</div>
+</section>
 
-      <dl class="data" style="margin-top:6px">
-        <div class="hl"><dt>ระยะฉีด</dt><dd><span id="v-pw">0</span><i>ms</i></dd></div>
-        <div class="hl"><dt>องศาไฟ</dt><dd><span id="v-ign">0</span><i>°BTDC</i></dd></div>
-        <div><dt>O2 (AFR)</dt><dd id="v-afr">0</dd></div>
-        <div><dt>น้ำหล่อเย็น ECT</dt><dd><span id="v-tmp">0</span><i>°C</i></dd></div>
-        <div><dt>แบตเตอรี่</dt><dd><span id="v-vol">0</span><i>V</i></dd></div>
-        <div><dt>ความเร็วสูงสุด</dt><dd><span id="v-max">0</span><i>km/h</i></dd></div>
-      </dl>
-      <p class="note" id="liveNote">ยังไม่ได้ต่อเกจ ไปที่แท็บ "ต่อ/สำรอง" ใส่ที่อยู่เกจแล้วกดต่อ ค่าที่เกจไม่ได้ส่งมาจะแสดงเป็น – ช่องที่ ECU กำลังใช้งานจริงจะมีกรอบกะพริบในตารางน้ำมันกับไฟ</p>
-    </section>
+<section id="tab-link" hidden>
+<div class="blk">
+<h2>เกจกับ ECU</h2>
+<p id="lnkTxt">กำลังตรวจสอบ…</p>
+<div class="row"><button class="btn pri" id="btnLink" type="button">ต่อ/ตัด ECU</button><button class="btn" id="btnEcuScan" type="button">สแกนหา ECU</button></div>
+<div class="msg" id="linkMsg"></div>
+</div>
+<div class="blk">
+<h2>ตัวเกจ</h2>
+<dl class="data"><div><dt>รหัสเกจ</dt><dd id="g-id" style="font-size:15px">-</dd></div><div><dt>เฟิร์มแวร์</dt><dd id="g-fw" style="font-size:15px">-</dd></div></dl>
+</div>
+<div class="blk" style="border-bottom:0">
+<h2>ก่อนใช้จริง</h2>
+<p style="margin:0">หน้านี้เปิดจากตัวเกจเท่านั้น (http://192.168.4.1/ecu) เพราะเกจไม่ได้เปิดให้เว็บอื่นเรียกข้ามเว็บ ทดสอบบนไดโนหรือที่ปลอดภัย และวัด AFR ทุกครั้งก่อนปรับแมพ</p>
+</div>
+</section>
+</main>
 
-    <section id="tab-fuel" hidden aria-label="แมพน้ำมัน">
-      <p class="sub">ระยะฉีดฐาน (ms) แกนนอนคือรอบ แกนตั้งคือ TPS %</p>
-      <div class="tools" id="tools-fuel"></div>
-      <div class="tablewrap" id="wrap-fuel"></div>
-      <div class="legend"><span>น้อย</span><i></i><span>มาก</span></div>
-    </section>
-
-    <section id="tab-ign" hidden aria-label="แมพไฟ">
-      <p class="sub">องศาไฟจุดระเบิด (°BTDC) แกนนอนคือรอบ แกนตั้งคือ TPS %</p>
-      <div class="tools" id="tools-ign"></div>
-      <div class="tablewrap" id="wrap-ign"></div>
-      <div class="legend"><span>น้อย</span><i></i><span>มาก</span></div>
-    </section>
-
-    <section id="tab-flash" hidden aria-label="อัดไฟล์">
-      <div class="blk">
-        <h2>1. เลือกไฟล์</h2>
-        <p>เลือกไฟล์แมพจากเครื่อง (.bin .hex .map .json .txt) หรือลากไฟล์มาวางในกรอบ ไฟล์ไม่ถูกอัปโหลดไปไหน อ่านในเครื่องคุณเท่านั้น</p>
-        <div class="drop" id="drop">
-          <label class="btn pri" for="file">เลือกไฟล์</label>
-          <input type="file" id="file" accept=".bin,.hex,.map,.json,.txt,application/json,text/plain,application/octet-stream" hidden>
-          <span class="k" id="fname">ยังไม่ได้เลือกไฟล์</span>
-        </div>
-        <dl class="data" id="finfo" hidden style="margin-top:8px">
-          <div><dt>ขนาด</dt><dd id="fi-size">-</dd></div>
-          <div><dt>CRC32</dt><dd id="fi-crc">-</dd></div>
-          <div><dt>ชนิด</dt><dd id="fi-type" style="font-family:var(--f-body);font-size:15px">-</dd></div>
-        </dl>
-        <pre class="hex" id="hex" hidden></pre>
-        <div class="row" style="margin-top:10px"><button class="btn" id="btnLoadMap" type="button" hidden>โหลดเข้าตารางแก้ไข</button></div>
-        <div class="msg" id="fmsg"></div>
-      </div>
-      <div class="blk">
-        <h2>2. ตรวจก่อนอัด</h2>
-        <ul class="chk">
-          <li><span>เลือกไฟล์แล้ว และไฟล์ไม่ว่าง</span><span class="mk" id="c-file">ยังไม่ผ่าน</span></li>
-          <li><span>ต่อ ECU อยู่</span><span class="mk" id="c-link">ยังไม่ผ่าน</span></li>
-        </ul>
-        <label class="ck" for="ck1"><input type="checkbox" id="ck1"><span>สำรองแมพเดิมออกจาก ECU ไว้แล้ว</span></label>
-        <label class="ck" for="ck2"><input type="checkbox" id="ck2"><span>แบตเต็ม สายต่อแน่น และจะไม่ดับเครื่องระหว่างอัด</span></label>
-      </div>
-      <div class="blk" style="border-bottom:0">
-        <h2>3. อัด</h2>
-        <p class="warn">ตอนนี้อัดลง ECU จริงยังไม่ได้ เพราะเว็บนี้ยังไม่ได้ต่อ ECU และยังไม่มีโปรโตคอลของรุ่นคุณ ปุ่มจำลองด้านล่างใช้ดูขั้นตอนเฉยๆ ไม่มีอะไรถูกเขียนลงเครื่อง</p>
-        <div class="row">
-          <button class="btn pri" id="btnFlashSim" type="button" disabled>อัดไฟล์ (จำลอง)</button>
-          <button class="btn" id="btnFlashReal" type="button" disabled>อัดลง ECU จริง</button>
-        </div>
-        <div class="chan" style="border:0;padding-bottom:0">
-          <div class="head"><span class="k" id="fstep">รอ</span><span class="rd"><span id="fpct">0</span><i>%</i></span></div>
-          <div class="bar thin" id="bar-flash"></div><div class="ticks" id="tk-flash"></div>
-        </div>
-        <pre class="log" id="flog"></pre>
-      </div>
-    </section>
-
-    <section id="tab-set" hidden aria-label="ไฟล์และเชื่อมต่อ">
-      <div class="blk">
-        <h2>เชื่อมต่อเกจ (ค่าสดจาก ECU)</h2>
-        <p>ต่อมือถือเข้า WiFi ของเกจ KTEC-GAUGE ก่อน แล้วใส่ที่อยู่เกจด้านล่าง เว็บจะดึงค่า RPM, TPS, MAP, AFR, น้ำหล่อเย็น, แบต, ความเร็ว ที่เกจอ่านจาก ECU ผ่าน K-line</p>
-        <p class="warn">ถ้าหน้านี้เปิดจากเว็บ https ของคุณ เบราว์เซอร์จะบล็อกการเรียกเกจที่เป็น http ให้เปิดหน้านี้จากตัวเกจเอง (เก็บไว้ในการ์ด SD) หรือเปิดผ่าน http</p>
-        <div class="row" style="margin-bottom:8px">
-          <input id="gAddr" type="text" inputmode="url" autocapitalize="off" spellcheck="false" aria-label="ที่อยู่เกจ" style="flex:1;min-width:140px;background:var(--bg);border:1px solid #4a4e55;border-radius:2px;color:var(--fg);padding:0 10px;font-family:var(--f-num);font-size:16px;min-height:42px">
-          <input id="gPath" type="text" autocapitalize="off" spellcheck="false" aria-label="พาธข้อมูล" style="width:110px;background:var(--bg);border:1px solid #4a4e55;border-radius:2px;color:var(--fg);padding:0 10px;font-family:var(--f-num);font-size:16px;min-height:42px">
-        </div>
-        <div class="row">
-          <button class="btn pri" id="btnGauge" type="button">ต่อเกจ</button>
-          <button class="btn" id="btnSerial" type="button">ต่อ USB</button>
-          <button class="btn" id="btnBle" type="button">ต่อบลูทูธ</button>
-        </div>
-        <div class="msg" id="linkMsg"></div>
-      </div>
-      <div class="blk">
-        <h2>บันทึก ส่งออก นำเข้า</h2>
-        <p>แมพถูกบันทึกในเครื่องนี้อัตโนมัติ คัดลอกข้อความด้านล่างเก็บไว้เป็นไฟล์สำรอง หรือวางข้อความที่เคยส่งออกแล้วกดนำเข้า</p>
-        <textarea id="io" spellcheck="false" aria-label="ข้อมูลแมพ"></textarea>
-        <div class="row" style="margin-top:8px">
-          <button class="btn pri" id="btnExport" type="button">สร้างข้อความส่งออก</button>
-          <button class="btn" id="btnCopy" type="button">คัดลอก</button>
-          <button class="btn" id="btnImport" type="button">นำเข้า</button>
-          <button class="btn neg" id="btnReset" type="button">คืนค่าตั้งต้นทั้งสองแมพ</button>
-        </div>
-        <div class="msg" id="ioMsg"></div>
-      </div>
-      <div class="blk" style="border-bottom:0">
-        <h2>ก่อนใช้จริง</h2>
-        <p style="margin:0">แมพที่ผิดทำให้เครื่องพังได้ ตัวเลขในหน้านี้เป็นค่าตัวอย่าง ไม่ใช่ค่าที่ปลอดภัยกับเครื่องของคุณ ทดสอบบนไดโนหรือที่ปลอดภัย และวัด AFR ทุกครั้งก่อนปรับเพิ่ม</p>
-      </div>
-    </section>
-  </main>
-
-  <div class="st"><span><i class="dot" id="linkDot"></i>ไม่ได้ต่อ ECU</span><span>ข้อมูล: <b id="srcName">ไม่มี</b> · <button id="simBtn" type="button">ต่อ</button></span></div>
+<div class="st"><span><i class="dot" id="linkDot"></i><span id="stTxt">ไม่ได้ต่อเกจ</span></span><span>เกจ: <b id="stHost">-</b></span></div>
 </div>
 
 <script>
-(function () {
-  var $ = function (s) { return document.querySelector(s); };
-  var RPM = [1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000];
-  var TPS = [0, 5, 10, 15, 20, 30, 40, 50, 60, 80, 100];
-  var KEY = "ecu-remap-v2";
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s)};
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+function msg(id,t){$(id).textContent=t}
+var onGauge=/^https?:$/.test(location.protocol)&&!!location.hostname;
+$("#stHost").textContent=onGauge?location.hostname:"ไม่ได้เปิดจากเกจ";
+if(!onGauge)$("#offgauge").hidden=false;
 
-  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
-  function factory(kind) {
-    return TPS.map(function (t) {
-      return RPM.map(function (r) {
-        if (kind === "fuel") return Math.round((0.9 + (t / 100) * 3.6 * (0.6 + (r / 10000) * 0.5)) * 100) / 100;
-        var a = clamp(10 + (r / 10000) * 22 - (t / 100) * 8, 8, 35);
-        return Math.round(a * 2) / 2;
-      });
-    });
-  }
-  function ok(m) { return Array.isArray(m) && m.length === TPS.length && m.every(function (r) { return Array.isArray(r) && r.length === RPM.length && r.every(function (v) { return typeof v === "number" && isFinite(v); }); }); }
-  var maps = {
-    fuel: { data: factory("fuel"), step: 0.05, min: 0.3, max: 12, dec: 2, unit: "ms", pct: true },
-    ign:  { data: factory("ign"),  step: 0.5,  min: 0,   max: 45, dec: 1, unit: "°", pct: false }
-  };
-  try {
-    var saved = JSON.parse(localStorage.getItem(KEY) || "null");
-    if (saved && ok(saved.fuel) && ok(saved.ign)) { maps.fuel.data = saved.fuel; maps.ign.data = saved.ign; }
-  } catch (e) {}
-  function persist() { try { localStorage.setItem(KEY, JSON.stringify({ fuel: maps.fuel.data, ign: maps.ign.data })); } catch (e) {} }
+/* ---------- tabs ---------- */
+var TABS=["live","map","files","link"],cur="live";
+function show(n){cur=n;TABS.forEach(function(t){$("#tab-"+t).hidden=t!==n});
+document.querySelectorAll(".tabs button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.tab===n))});
+if(n==="map")loadMap();if(n==="files")loadFl();if(n==="link")loadId()}
+document.querySelectorAll(".tabs button").forEach(function(b){b.addEventListener("click",function(){show(b.dataset.tab)})});
 
-  /* ---------- tabs ---------- */
-  var tabs = document.querySelectorAll(".tabs button");
-  function show(name) {
-    ["live", "fuel", "ign", "flash", "set"].forEach(function (n) { $("#tab-" + n).hidden = n !== name; });
-    tabs.forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === name)); });
-  }
-  tabs.forEach(function (b) { b.addEventListener("click", function () { show(b.dataset.tab); }); });
+/* ---------- segmented bars ---------- */
+function Bar(id,n){
+var el=$("#bar-"+id),tk=$("#tk-"+id),sp=[],last=-1,lo=0,hi=100,i;
+for(i=0;i<n;i++){var s=document.createElement("span");el.appendChild(s);sp.push(s)}
+function range(l,h,ticks,fmt,redAt){lo=l;hi=h;if(tk)tk.textContent="";
+(ticks||[]).forEach(function(v){var t=document.createElement("span");t.textContent=fmt?fmt(v):v;t.style.left=((v-lo)/(hi-lo)*100)+"%";tk.appendChild(t)});
+var rf=redAt==null?n:Math.round(clamp((redAt-lo)/(hi-lo),0,1)*n);
+sp.forEach(function(s,j){s.classList.toggle("red",j>=rf)});last=-1}
+function set(v){var k=Math.round(clamp((v-lo)/(hi-lo),0,1)*n);if(k===last)return;last=k;sp.forEach(function(s,j){s.classList.toggle("on",j<k)})}
+return{range:range,set:set}}
+var bRpm=Bar("rpm",50),bTps=Bar("tps",25),bMap=Bar("map",25),bFl=Bar("flash",40),bUp=Bar("up",40);
+function rpmRange(max,shift){var st=max>12000?4000:max>6000?2000:1000,t=[];for(var v=0;v<=max;v+=st)t.push(v);
+bRpm.range(0,max,t,function(v){return v/1000},shift)}
+rpmRange(10000,null);
+bTps.range(0,100,[0,25,50,75,100]);bMap.range(20,101,[20,40,60,80,100]);bFl.range(0,100,[0,50,100]);bUp.range(0,100,[]);
 
-  /* ---------- segmented bars ---------- */
-  function makeBar(id, n, redFrom, tickVals, lo, hi, tickFmt) {
-    var el = $("#bar-" + id), spans = [];
-    for (var i = 0; i < n; i++) {
-      var s = document.createElement("span");
-      if (redFrom != null && i >= redFrom) s.className = "red";
-      el.appendChild(s); spans.push(s);
-    }
-    var tk = $("#tk-" + id);
-    tickVals.forEach(function (v) {
-      var t = document.createElement("span"); t.textContent = tickFmt ? tickFmt(v) : v;
-      t.style.left = ((v - lo) / (hi - lo) * 100) + "%"; tk.appendChild(t);
-    });
-    var last = -1;
-    return function (v) {
-      var k = Math.round(clamp((v - lo) / (hi - lo), 0, 1) * n);
-      if (k === last) return; last = k;
-      for (var i = 0; i < n; i++) spans[i].classList.toggle("on", i < k);
-    };
-  }
-  var setRpm = makeBar("rpm", 50, 45, [0, 2000, 4000, 6000, 8000, 10000], 0, 10000, function (v) { return v / 1000; });
-  var setTps = makeBar("tps", 25, null, [0, 25, 50, 75, 100], 0, 100);
-  var setMap = makeBar("map", 25, null, [20, 40, 60, 80, 100], 20, 101);
+/* ---------- live data ---------- */
+var F=null,lastData=0,lastSse=0,gaugeUp=false,rmaxSeen=0,shiftSeen=-1;
+function put(id,v,dec){$(id).textContent=v==null?"–":(dec==null?String(Math.round(v)):v.toFixed(dec))}
+function val(f,i){return(f.ok&&f.ok[i]&&f.v&&isFinite(f.v[i]))?f.v[i]:null}
+function setLink(l,sc){
+var t,cls;
+if(sc===1){t="กำลังสแกน ECU";cls="wait"}
+else if(l===1){t="ต่อ ECU แล้ว";cls="on"}
+else if(l===2){t="ตัดการเชื่อม ECU";cls=""}
+else{t="รอ ECU";cls="wait"}
+$("#stTxt").textContent=t;$("#linkDot").className="dot "+cls;
+$("#lnkTxt").textContent="สถานะ: "+t+(l===1?" ค่าสดมาจาก ECU จริง":" ถ้าต่อสาย K-line แล้ว กดสแกนหา ECU")}
+var liveKey="",liveCell=null,mapCells=[],mapCols=0;
+function markLive(r,c){
+var k=r+","+c;if(k===liveKey)return;liveKey=k;
+if(liveCell){liveCell.classList.remove("live");liveCell=null}
+if(r>=0&&c>=0&&mapCells.length){var td=mapCells[r*mapCols+c];if(td){td.classList.add("live");liveCell=td}}}
+function clearLive(){
+["#v-spd","#v-rpm","#v-tps","#v-tpsv","#v-map","#v-pw","#v-ign","#v-afr","#v-tmp","#v-iat","#v-vol"].forEach(function(i){put(i,null)});
+bRpm.set(0);bTps.set(0);bMap.set(0);markLive(-1,-1);F=null}
+function applyFast(f){
+lastData=Date.now();F=f;
+var rpm=val(f,0),tps=val(f,1),wt=val(f,2),afr=val(f,3),bat=val(f,4),spd=val(f,5),iat=val(f,6),map=val(f,7),inj=val(f,8),ign=val(f,9),tv=val(f,10);
+put("#v-rpm",rpm);bRpm.set(rpm||0);
+put("#v-tps",tps,1);bTps.set(tps||0);put("#v-tpsv",tv,3);
+put("#v-map",map);bMap.set(map||0);
+put("#v-spd",spd);put("#v-pw",inj,2);put("#v-ign",ign,1);put("#v-afr",afr,1);
+put("#v-tmp",wt);put("#v-iat",iat);put("#v-vol",bat,1);
+setLink(f.l,f.sc);
+if(f.lr!==undefined)markLive(f.lr,f.lc);
+if(cur==="files")updateChecks()}
+function applyFull(d){
+applyFast(d);
+if(d.mx&&d.mx[5]!=null)put("#v-max",d.mx[5]);else put("#v-max",null);
+if(d.s&&d.s.rmax){var sh=d.s.sen?d.s.shift:null;
+if(d.s.rmax!==rmaxSeen||sh!==shiftSeen){rmaxSeen=d.s.rmax;shiftSeen=sh;rpmRange(rmaxSeen,sh)}}}
+function setUp(on){
+if(on===gaugeUp)return;gaugeUp=on;
+if(!on){clearLive();$("#stTxt").textContent="ไม่ได้ต่อเกจ";$("#linkDot").className="dot";
+$("#lnkTxt").textContent="ติดต่อเกจไม่ได้ ตรวจว่ามือถือต่อ WiFi ของเกจอยู่"}}
+var es=null,polling=false,pollFails=0;
+function startSse(){
+if(!onGauge||!window.EventSource)return;
+try{es=new EventSource("http://"+location.hostname+":81/");
+es.addEventListener("f",function(e){lastSse=Date.now();try{applyFast(JSON.parse(e.data))}catch(x){}});
+es.onmessage=function(e){lastSse=Date.now();try{applyFull(JSON.parse(e.data))}catch(x){}}}catch(x){}}
+function pollS(){
+if(polling||upBusy)return;polling=true;
+fetch("/s",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){pollFails=0;applyFull(d)})
+.catch(function(){pollFails++}).then(function(){polling=false})}
+if(onGauge){startSse();
+setInterval(function(){var now=Date.now();
+if(now-lastSse>1500)pollS();
+setUp(lastData>0&&now-lastData<3000)},700)}
 
-  /* ---------- map editor ---------- */
-  function lerp(a, b, p) { return Math.round(a + (b - a) * p); }
-  function heat(v, lo, hi) {
-    var p = clamp((v - lo) / (hi - lo || 1), 0, 1), A, B, q;
-    if (p < 0.5) { A = [39, 64, 63]; B = [185, 154, 44]; q = p * 2; } else { A = [185, 154, 44]; B = [194, 84, 45]; q = (p - 0.5) * 2; }
-    return { bg: "rgb(" + [lerp(A[0], B[0], q), lerp(A[1], B[1], q), lerp(A[2], B[2], q)].join(",") + ")", fg: (p > 0.3 && p < 0.72) ? "#161616" : "#f0eee8" };
-  }
-  function Editor(key) {
-    var m = maps[key];
-    var wrap = $("#wrap-" + key), tools = $("#tools-" + key);
-    var selected = {}, multi = false, undo = [], cells = [];
-    var tbl = document.createElement("table");
-    var html = "<thead><tr><th>TPS\\รอบ</th>" + RPM.map(function (r) { return "<th>" + r + "</th>"; }).join("") + "</tr></thead><tbody>";
-    TPS.forEach(function (t, i) {
-      html += "<tr><th>" + t + "%</th>" + RPM.map(function (r, j) { return '<td data-r="' + i + '" data-c="' + j + '"></td>'; }).join("") + "</tr>";
-    });
-    tbl.innerHTML = html + "</tbody>";
-    wrap.appendChild(tbl);
-    tbl.querySelectorAll("td").forEach(function (td) { cells.push(td); });
+/* ---------- commands ---------- */
+function cmd(n,extra){return fetch("/c?n="+n+(extra||""),{cache:"no-store"})}
+$("#btnLink").addEventListener("click",function(){cmd("link").then(function(){msg("#linkMsg","ส่งคำสั่งแล้ว")}).catch(function(){msg("#linkMsg","ส่งคำสั่งไม่ได้")})});
+$("#btnEcuScan").addEventListener("click",function(){cmd("scan").then(function(){msg("#linkMsg","กำลังสแกนหา ECU ดูผลที่แถบสถานะด้านล่าง")}).catch(function(){msg("#linkMsg","ส่งคำสั่งไม่ได้")})});
+function loadId(){fetch("/id",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){$("#g-id").textContent=d.id||"-";$("#g-fw").textContent=(d.fw||"-")+(d.b?" · "+d.b:"")}).catch(function(){})}
 
-    function range() { var f = m.data.reduce(function (a, r) { return a.concat(r); }, []); return [Math.min.apply(null, f), Math.max.apply(null, f)]; }
-    function paint() {
-      var rg = range();
-      cells.forEach(function (td) {
-        var i = +td.dataset.r, j = +td.dataset.c, v = m.data[i][j], h = heat(v, rg[0], rg[1]);
-        td.textContent = v.toFixed(m.dec);
-        td.style.background = h.bg; td.style.color = h.fg;
-        td.classList.toggle("sel", !!selected[i + "," + j]);
-      });
-      count.textContent = "เลือก " + Object.keys(selected).length + " ช่อง";
-    }
-    function snap() { undo.push(JSON.stringify(m.data)); if (undo.length > 40) undo.shift(); }
-    function each(fn) { Object.keys(selected).forEach(function (k) { var p = k.split(","); fn(+p[0], +p[1]); }); }
-    function change(fn) {
-      if (!Object.keys(selected).length) { flash("แตะช่องในตารางก่อน"); return; }
-      snap();
-      each(function (i, j) {
-        var v = clamp(fn(m.data[i][j]), m.min, m.max);
-        m.data[i][j] = +(Math.round(v / (m.step / 5)) * (m.step / 5)).toFixed(3);
-      });
-      persist(); paint();
-    }
-    function flash(t) { count.textContent = t; setTimeout(paint, 1200); }
+/* ---------- maps from gauge (/afr) ---------- */
+var NAMES=["INJ","AFR","IGT"],DEC=[2,1,1],UNIT=["ms","AFR","°BTDC"],sheet=1,mapData=null,mapBusy=false;
+function lerp(a,b,p){return Math.round(a+(b-a)*p)}
+function heat(v,lo,hi){var p=clamp((v-lo)/(hi-lo||1),0,1),A,B,q;
+if(p<.5){A=[39,64,63];B=[185,154,44];q=p*2}else{A=[185,154,44];B=[194,84,45];q=(p-.5)*2}
+return{bg:"rgb("+[lerp(A[0],B[0],q),lerp(A[1],B[1],q),lerp(A[2],B[2],q)].join(",")+")",fg:(p>.3&&p<.72)?"#161616":"#f0eee8"}}
+function loadMap(){
+if(mapBusy||upBusy||!onGauge)return;mapBusy=true;
+fetch("/afr",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){mapData=d;renderMap()})
+.catch(function(){msg("#mapMsg","อ่านตารางจากเกจไม่ได้")}).then(function(){mapBusy=false})}
+function renderMap(){
+var d=mapData;if(!d)return;
+var t=sheet,m=d.m[t],rows=d.r,cols=d.c,vals=[],r,c,v;
+for(r=0;r<rows;r++)for(c=0;c<cols;c++){v=m[r][c];if(v!==null)vals.push(v)}
+var lo=vals.length?Math.min.apply(null,vals):0,hi=vals.length?Math.max.apply(null,vals):1;
+var h="<table><thead><tr><th>รอบ\\TPS%</th>";
+for(c=0;c<cols;c++)h+="<th>"+d.ax[c]+"</th>";
+h+="</tr></thead><tbody>";
+for(r=0;r<rows;r++){h+="<tr><th>"+(d.rb[t]+r*d.rs)+"</th>";
+for(c=0;c<cols;c++){v=m[r][c];
+if(v===null)h+="<td></td>";else{var k=heat(v,lo,hi);h+='<td style="background:'+k.bg+";color:"+k.fg+'">'+v.toFixed(DEC[t])+"</td>"}}
+h+="</tr>"}
+$("#wrap-map").innerHTML=h+"</tbody></table>";
+mapCols=cols;mapCells=Array.prototype.slice.call($("#wrap-map").querySelectorAll("td"));
+liveKey="";markLive(F&&F.lr!==undefined?F.lr:d.lr,F&&F.lc!==undefined?F.lc:d.lc);
+$("#mapUnit").textContent=NAMES[t]+" ("+UNIT[t]+")"+(vals.length?"":"");
+$("#btnPause").textContent=d.pa?"บันทึกต่อ":"หยุดบันทึก";
+msg("#mapMsg",vals.length?"":"ยังไม่มีข้อมูลในแผ่นนี้ ต่อ ECU แล้วขับหรือเร่งเครื่อง เกจจะบันทึกลงตารางเอง")}
+document.querySelectorAll("#sheets .btn").forEach(function(b){b.addEventListener("click",function(){
+sheet=+b.dataset.s;document.querySelectorAll("#sheets .btn").forEach(function(x){x.classList.toggle("act",x===b)});renderMap()})});
+$("#btnMapReload").addEventListener("click",loadMap);
+$("#btnPause").addEventListener("click",function(){cmd("afrpause").then(function(){setTimeout(loadMap,250)})});
+$("#btnExport").addEventListener("click",function(){
+if(!mapData){msg("#mapMsg","ยังไม่ได้อ่านตาราง");return}
+var o={app:"ktec-ecu",tps:mapData.ax,sheets:{}};
+[0,1,2].forEach(function(t){o.sheets[NAMES[t]]={rpmBase:mapData.rb[t],rpmStep:mapData.rs,data:mapData.m[t]}});
+var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));
+a.download="ktec-maps.json";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},2000)});
 
-    var count = document.createElement("span");
-    count.style.cssText = "color:var(--dim);font-size:13px;margin-left:4px";
+/* ---------- files on gauge ---------- */
+var fl=null,sel=null,pending=null,upBusy=false,flBusy=false;
+function fmtSize(n){return n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":(n/1048576).toFixed(2)+" MB"}
+function fmtT(s){return Math.floor(s/60)+":"+("0"+s%60).slice(-2)}
+function loadFl(){
+if(flBusy||upBusy||!onGauge)return;flBusy=true;
+fetch("/fl/s",{cache:"no-store"}).then(function(r){return r.json()}).then(function(d){fl=d;renderFl()})
+.catch(function(){msg("#fm","อ่านสถานะจากเกจไม่ได้")}).then(function(){flBusy=false})}
+function chip(t,c){return'<span class="chip '+c+'">'+t+"</span>"}
+function renderFl(){
+var d=fl;if(!d)return;
+$("#chips").innerHTML=chip(d.sd?"มีที่เก็บไฟล์":"ไม่มีที่เก็บไฟล์",d.sd?"ok":"bad")+chip(d.proto?"โปรโตคอลอัด: ตั้งแล้ว":"โปรโตคอลอัด: ยังไม่ตั้ง",d.proto?"ok":"bad")+(d.busy?chip("กำลังอัด","bad"):"");
+var box=$("#fl");box.textContent="";
+if(!d.files.length){var e=document.createElement("div");e.className="empty";e.textContent=d.sd?"ยังไม่มีไฟล์ .bin อัปโหลดด้านล่างได้เลย":"ไม่มีที่เก็บไฟล์ในเกจ";box.appendChild(e)}
+if(sel&&!d.files.some(function(f){return f.n===sel}))sel=null;
+d.files.forEach(function(f){
+var row=document.createElement("div");row.className="fi"+(f.n===sel?" sel":"");
+var nm=document.createElement("div");nm.className="fn";nm.textContent=f.n;
+var sm=document.createElement("span");sm.className="fs";sm.textContent=fmtSize(f.s)+" · อัดประมาณ "+fmtT(f.t);nm.appendChild(sm);
+var b1=document.createElement("button");b1.className="btn"+(f.n===sel?" act":"");b1.type="button";b1.textContent=f.n===sel?"เลือกอยู่":"เลือก";
+b1.addEventListener("click",function(){sel=f.n;renderFl()});
+var b2=document.createElement("button");b2.className="btn neg";b2.type="button";b2.textContent="ลบ";b2.disabled=!!d.busy;
+b2.addEventListener("click",function(){if(!confirm("ลบไฟล์ "+f.n+" ออกจากเกจ?"))return;
+fetch("/fl/del?f="+encodeURIComponent(f.n),{cache:"no-store"}).then(function(r){return r.json()}).then(function(o){msg("#fm",o.msg||"");loadFl()}).catch(function(){msg("#fm","ลบไม่ได้")})});
+row.appendChild(nm);row.appendChild(b1);row.appendChild(b2);box.appendChild(row)});
+var run=d.busy||d.st!==0;
+$("#runbox").hidden=!run;
+if(run){var res=d.st===2?"สำเร็จ":d.st===3?"ผิดพลาด":d.st===4?"ยกเลิก":(d.ph||"กำลังทำ");
+$("#fstep").textContent=res+(d.busy&&d.ph?" · "+d.ph:"");$("#fpct").textContent=d.pct;bFl.set(d.pct);
+$("#flog").textContent=(d.msg||"")+(d.busy?"\nเขียนแล้ว "+fmtSize(d.done)+" / "+fmtSize(d.total)+" · ผ่านไป "+fmtT(d.el)+(d.bps?" · "+d.bps+" B/s":""):"\nใช้เวลา "+fmtT(d.el))}
+$("#btnStop").hidden=!d.busy;
+updateChecks()}
+$("#btnScan").addEventListener("click",function(){fetch("/fl/scan",{cache:"no-store"}).then(function(r){return r.json()}).then(function(o){msg("#fm",o.msg||"");loadFl()}).catch(function(){msg("#fm","สแกนไม่ได้")})});
 
-    function btn(label, cls, fn) {
-      var b = document.createElement("button"); b.type = "button"; b.className = "btn " + (cls || ""); b.textContent = label;
-      b.addEventListener("click", fn); return b;
-    }
-    var adj = document.createElement("div"); adj.className = "seg";
-    var steps = m.pct ? [["−5%", -5], ["−1%", -1], ["+1%", 1], ["+5%", 5]] : [["−1°", -1], ["−0.5°", -0.5], ["+0.5°", 0.5], ["+1°", 1]];
-    steps.forEach(function (s) {
-      adj.appendChild(btn(s[0], s[1] < 0 ? "neg" : "pos", function () {
-        change(function (v) { return m.pct ? v * (1 + s[1] / 100) : v + s[1]; });
-      }));
-    });
-    var mbtn = btn("ลากเลือก", "", function () {
-      multi = !multi; mbtn.classList.toggle("act", multi); wrap.classList.toggle("sel", multi);
-      mbtn.textContent = multi ? "ลากเลือก: เปิด" : "ลากเลือก";
-    });
-    var setbox = document.createElement("div"); setbox.className = "setbox";
-    var inp = document.createElement("input"); inp.type = "number"; inp.inputMode = "decimal"; inp.step = m.step; inp.placeholder = m.unit;
-    inp.id = "set-" + key; inp.setAttribute("aria-label", "ตั้งค่าที่ช่องที่เลือก");
-    var go = btn("ตั้งค่า", "pri", function () { var x = parseFloat(inp.value); if (!isFinite(x)) { flash("ใส่ตัวเลขก่อน"); return; } change(function () { return x; }); });
-    setbox.appendChild(inp); setbox.appendChild(go);
-    var smooth = btn("เกลี่ย", "", function () {
-      if (!Object.keys(selected).length) { flash("แตะช่องในตารางก่อน"); return; }
-      snap(); var src = JSON.parse(JSON.stringify(m.data));
-      each(function (i, j) {
-        var s = 0, n = 0;
-        for (var a = -1; a <= 1; a++) for (var b = -1; b <= 1; b++) {
-          var r = src[i + a] && src[i + a][j + b]; if (typeof r === "number") { s += r; n++; }
-        }
-        m.data[i][j] = +(s / n).toFixed(3);
-      });
-      persist(); paint();
-    });
-    var und = btn("ย้อน", "", function () { if (!undo.length) { flash("ไม่มีให้ย้อน"); return; } m.data = JSON.parse(undo.pop()); persist(); paint(); });
-    var clr = btn("ล้างเลือก", "", function () { selected = {}; paint(); });
-    [adj, setbox, mbtn, smooth, und, clr, count].forEach(function (e) { tools.appendChild(e); });
+/* upload */
+var crcT=[];for(var n=0;n<256;n++){var cc=n;for(var k=0;k<8;k++)cc=cc&1?0xEDB88320^(cc>>>1):cc>>>1;crcT[n]=cc>>>0}
+function crc32(b){var c=0xFFFFFFFF;for(var i=0;i<b.length;i++)c=crcT[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function hex8(v){return("00000000"+v.toString(16)).slice(-8).toUpperCase()}
+$("#file").addEventListener("change",function(){
+var f=this.files&&this.files[0];this.value="";pending=null;$("#btnUp").disabled=true;$("#finfo").hidden=true;msg("#um","");
+if(!f)return;
+var name=f.name.split(/[\\/]/).pop().replace(/ /g,"_").replace(/[^A-Za-z0-9._-]/g,"");
+if(!/\.bin$/i.test(name)||name.length>39||name.length<5){msg("#um","ชื่อไฟล์ต้องลงท้าย .bin ใช้ได้เฉพาะ A-Z 0-9 . _ - ไม่เกิน 39 ตัว (ตอนนี้ได้ \""+name+"\")");return}
+if(f.size===0){msg("#um","ไฟล์ว่าง");return}
+if(f.size>16*1048576){msg("#um","ไฟล์ใหญ่เกิน 16 MB");return}
+var fr=new FileReader();
+fr.onerror=function(){msg("#um","อ่านไฟล์ไม่ได้")};
+fr.onload=function(){pending={file:f,name:name};
+$("#fi-name").textContent=name;$("#fi-size").textContent=fmtSize(f.size);$("#fi-crc").textContent=hex8(crc32(new Uint8Array(fr.result)));
+$("#finfo").hidden=false;$("#btnUp").disabled=false};
+fr.readAsArrayBuffer(f)});
+$("#btnUp").addEventListener("click",function(){
+if(!pending||upBusy)return;
+if(fl&&fl.busy){msg("#um","กำลังอัดอยู่ อัปโหลดไม่ได้");return}
+upBusy=true;$("#btnUp").disabled=true;$("#upbox").hidden=false;$("#upct").textContent="0";bUp.set(0);msg("#um","กำลังอัปโหลด…");
+var fd=new FormData();fd.append("f",pending.file,pending.name);
+var x=new XMLHttpRequest();x.open("POST","/up");
+x.upload.onprogress=function(e){if(e.lengthComputable){var p=Math.round(e.loaded/e.total*100);$("#upct").textContent=p;bUp.set(p)}};
+function done(o){upBusy=false;$("#btnUp").disabled=!pending;msg("#um",o.msg||(o.ok?"อัปโหลดแล้ว":"อัปโหลดไม่สำเร็จ"));
+if(o.ok){sel=o.name||pending.name;fetch("/fl/scan",{cache:"no-store"}).then(function(){loadFl()}).catch(function(){loadFl()})}}
+x.onload=function(){var o;try{o=JSON.parse(x.responseText)}catch(e){o={ok:false,msg:"เกจตอบกลับผิดรูปแบบ"}}done(o)};
+x.onerror=function(){done({ok:false,msg:"การเชื่อมต่อขาดระหว่างอัปโหลด"})};
+x.onabort=x.onerror;x.send(fd)});
 
-    var dragging = false;
-    function cellAt(x, y) { var el = document.elementFromPoint(x, y); return el && el.tagName === "TD" ? el : null; }
-    function pick(td, add) {
-      var k = td.dataset.r + "," + td.dataset.c;
-      if (add) selected[k] = 1; else if (selected[k]) delete selected[k]; else selected[k] = 1;
-    }
-    tbl.addEventListener("pointerdown", function (e) {
-      var td = cellAt(e.clientX, e.clientY); if (!td) return;
-      if (multi) { dragging = true; pick(td, true); paint(); }
-    });
-    tbl.addEventListener("pointermove", function (e) {
-      if (!dragging) return; var td = cellAt(e.clientX, e.clientY); if (td) { pick(td, true); paint(); }
-    });
-    window.addEventListener("pointerup", function () { dragging = false; });
-    tbl.addEventListener("click", function (e) {
-      var td = e.target.closest("td"); if (!td || multi) return;
-      pick(td, false); paint();
-    });
+/* flash (real) */
+function mk(id,pass){var el=$(id);el.textContent=pass?"ผ่าน":"ยังไม่ผ่าน";el.classList.toggle("pass",!!pass)}
+function flashReady(){
+var linkOk=!!(F&&F.l===1),rpm=F?val(F,0):null,off=linkOk&&rpm!==null&&rpm<50,gOk=!!(fl&&fl.sd&&!fl.block&&!fl.busy);
+return{file:!!sel,link:linkOk,off:off,gauge:gOk}}
+function updateChecks(){
+var r=flashReady();
+$("#selname").textContent=sel||"ยังไม่ได้เลือก";
+mk("#c-file",r.file);mk("#c-link",r.link);mk("#c-off",r.off);mk("#c-gauge",r.gauge);
+$("#why").textContent=fl&&fl.block?"("+fl.block+")":"";
+$("#btnFlash").disabled=!(r.file&&r.link&&r.off&&r.gauge&&$("#ck1").checked&&$("#ck2").checked&&$("#cf").value.trim()==="FLASH")}
+["#ck1","#ck2"].forEach(function(i){$(i).addEventListener("change",updateChecks)});
+$("#cf").addEventListener("input",updateChecks);
+$("#btnFlash").addEventListener("click",function(){
+if($("#btnFlash").disabled||!sel)return;
+$("#btnFlash").disabled=true;msg("#fmsg","ส่งคำสั่งอัดไปที่เกจ…");
+fetch("/fl/go?f="+encodeURIComponent(sel)+"&m=real&c=FLASH",{cache:"no-store"}).then(function(r){return r.json()})
+.then(function(o){msg("#fmsg",o.msg||"");if(o.ok)$("#cf").value="";loadFl()}).catch(function(){msg("#fmsg","ส่งคำสั่งไม่ได้");updateChecks()})});
+$("#btnStop").addEventListener("click",function(){fetch("/fl/stop",{cache:"no-store"}).then(function(r){return r.json()}).then(function(o){msg("#fmsg",o.msg||"")}).catch(function(){msg("#fmsg","ส่งคำสั่งหยุดไม่ได้")})});
 
-    paint();
-    return { paint: paint, reset: function () { m.data = factory(key); selected = {}; undo = []; persist(); paint(); }, cells: cells };
-  }
-  var edFuel = Editor("fuel"), edIgn = Editor("ign");
-
-  /* ---------- interpolation ---------- */
-  function axisPos(axis, v) {
-    if (v <= axis[0]) return [0, 0, 0];
-    for (var i = 0; i < axis.length - 1; i++) if (v <= axis[i + 1]) return [i, i + 1, (v - axis[i]) / (axis[i + 1] - axis[i])];
-    return [axis.length - 1, axis.length - 1, 0];
-  }
-  function lookup(m, rpm, tps) {
-    var a = axisPos(TPS, tps), b = axisPos(RPM, rpm);
-    function g(i, j) { return m.data[i][j]; }
-    var top = g(a[0], b[0]) * (1 - b[2]) + g(a[0], b[1]) * b[2];
-    var bot = g(a[1], b[0]) * (1 - b[2]) + g(a[1], b[1]) * b[2];
-    return top * (1 - a[2]) + bot * a[2];
-  }
-  function nearest(axis, v) { var bi = 0; axis.forEach(function (x, i) { if (Math.abs(x - v) < Math.abs(axis[bi] - v)) bi = i; }); return bi; }
-
-  /* ---------- live (simulated) ---------- */
-  var linked = false, maxSpd = 0, lastLive = [], pollTimer = null, ws = null, lastOk = 0, fails = 0, busy = false;
-  var simBtn = $("#simBtn");
-  var CK = "ecu-gauge-link";
-  var cfg = { addr: "192.168.4.1", path: "/data" };
-  try { var sc = JSON.parse(localStorage.getItem(CK) || "null"); if (sc && sc.addr) cfg = sc; } catch (e) {}
-  $("#gAddr").value = cfg.addr; $("#gPath").value = cfg.path;
-  function set(id, v) { $(id).textContent = v; }
-
-  /* ชื่อคีย์ที่รับได้จากเกจ (ใช้ตัวแรกที่เจอ) */
-  var KEYS = {
-    rpm: ["rpm", "RPM", "engine_rpm"],
-    tps: ["tps", "TPS", "tps_pct", "throttle"],
-    map: ["map", "MAP", "map_kpa", "mapKpa"],
-    spd: ["spd", "speed", "gps_speed", "gpsSpeed", "kmh", "vss"],
-    afr: ["afr", "AFR"],
-    tmp: ["ect", "ECT", "wtemp", "temp", "coolant", "w_temp"],
-    vol: ["batt", "bat", "vbat", "volt", "voltage", "battery"],
-    pw: ["inj", "pw", "inj_ms", "injms", "injector"],
-    ign: ["ign", "ignition", "adv", "advance", "spark"],
-    gear: ["gear"]
-  };
-  function pick(o, names) {
-    for (var i = 0; i < names.length; i++) { var v = o[names[i]]; if (v !== undefined && v !== null && v !== "" && isFinite(+v) || (names === KEYS.gear && v != null)) return v; }
-    return null;
-  }
-  function dash(id) { set(id, "–"); }
-
-  function apply(o) {
-    var rpm = pick(o, KEYS.rpm), tps = pick(o, KEYS.tps), map = pick(o, KEYS.map), spd = pick(o, KEYS.spd);
-    var afr = pick(o, KEYS.afr), tmp = pick(o, KEYS.tmp), vol = pick(o, KEYS.vol), pw = pick(o, KEYS.pw), ign = pick(o, KEYS.ign), gear = pick(o, KEYS.gear);
-    if (rpm != null) { rpm = +rpm; set("#v-rpm", Math.round(rpm)); setRpm(rpm); } else dash("#v-rpm");
-    if (tps != null) { tps = +tps; set("#v-tps", tps.toFixed(0)); setTps(tps); } else dash("#v-tps");
-    if (map != null) { map = +map; set("#v-map", map.toFixed(0)); setMap(map); } else dash("#v-map");
-    if (spd != null) { spd = +spd; maxSpd = Math.max(maxSpd, spd); set("#v-spd", Math.round(spd)); set("#v-max", Math.round(maxSpd)); } else { dash("#v-spd"); }
-    set("#v-gear", gear != null ? gear : (spd != null ? (spd < 4 ? "N" : "IN GEAR") : "–"));
-    afr != null ? set("#v-afr", (+afr).toFixed(1)) : dash("#v-afr");
-    tmp != null ? set("#v-tmp", (+tmp).toFixed(0)) : dash("#v-tmp");
-    vol != null ? set("#v-vol", (+vol).toFixed(1)) : dash("#v-vol");
-    /* ระยะฉีด/องศาไฟ: ใช้ค่าจริงจาก ECU ถ้าเกจส่งมา ถ้าไม่ส่งก็ไม่เดา */
-    pw != null ? set("#v-pw", (+pw).toFixed(2)) : dash("#v-pw");
-    ign != null ? set("#v-ign", (+ign).toFixed(1)) : dash("#v-ign");
-
-    lastLive.forEach(function (c) { c.classList.remove("live"); }); lastLive = [];
-    if (rpm != null && tps != null) {
-      var ci = nearest(TPS, tps), cj = nearest(RPM, rpm);
-      [edFuel, edIgn].forEach(function (ed) { var c = ed.cells[ci * RPM.length + cj]; c.classList.add("live"); lastLive.push(c); });
-    }
-  }
-  function clearLive() {
-    ["#v-spd", "#v-rpm", "#v-tps", "#v-map", "#v-afr", "#v-tmp", "#v-vol", "#v-pw", "#v-ign", "#v-gear"].forEach(dash);
-    setRpm(0); setTps(0); setMap(0);
-    lastLive.forEach(function (c) { c.classList.remove("live"); }); lastLive = [];
-  }
-  function state(on, label) {
-    linked = on;
-    $("#linkDot").classList.toggle("on", on);
-    $("#linkDot").nextSibling.textContent = on ? "ต่อเกจแล้ว" : "ไม่ได้ต่อ ECU";
-    $("#srcName").textContent = label;
-    simBtn.textContent = (pollTimer || ws) ? "ตัด" : "ต่อ";
-    mark("#c-link", on, "ผ่าน", "ยังไม่ผ่าน"); flashBtn();
-    $("#liveNote").textContent = on ? "ค่าทั้งหมดมาจากเกจที่อ่านจาก ECU จริง ค่าที่เกจไม่ได้ส่งมาแสดงเป็น –" : "ยังไม่ได้ต่อเกจ ไปที่แท็บ \"ต่อ/สำรอง\" ใส่ที่อยู่เกจแล้วกดต่อ";
-  }
-  function baseUrl() {
-    var a = cfg.addr.trim().replace(/\/+$/, "");
-    if (!/^(https?|wss?):\/\//i.test(a)) a = "http://" + a;
-    return a;
-  }
-  function stop(label) {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    if (ws) { try { ws.onclose = null; ws.close(); } catch (e) {} ws = null; }
-    state(false, label || "ไม่มี"); clearLive();
-  }
-  function poll() {
-    if (busy) return; busy = true;
-    var ctl = ("AbortController" in window) ? new AbortController() : null;
-    var to = setTimeout(function () { if (ctl) ctl.abort(); }, 1500);
-    fetch(baseUrl() + cfg.path, { cache: "no-store", signal: ctl ? ctl.signal : undefined })
-      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-      .then(function (o) { fails = 0; lastOk = Date.now(); if (!linked) { state(true, "เกจ " + cfg.addr); msg("#linkMsg", "ต่อเกจแล้ว"); } apply(o); })
-      .catch(function (e) {
-        fails++;
-        if (fails === 3) { state(false, "ต่อเกจไม่ได้"); clearLive(); msg("#linkMsg", "ติดต่อเกจไม่ได้ ตรวจว่ามือถือต่อ WiFi เกจอยู่ และที่อยู่/พาธถูก (" + (e && e.message ? e.message : "ผิดพลาด") + ")"); }
-      })
-      .then(function () { clearTimeout(to); busy = false; });
-  }
-  function startGauge() {
-    stop(); fails = 0; busy = false;
-    var b = baseUrl();
-    if (location.protocol === "https:" && /^(http|ws):\/\//i.test(b)) {
-      msg("#linkMsg", "หน้านี้เปิดจาก https เรียกเกจที่เป็น http ไม่ได้ ให้เปิดหน้านี้จากตัวเกจหรือผ่าน http"); return;
-    }
-    msg("#linkMsg", "กำลังต่อเกจ…"); $("#srcName").textContent = "กำลังต่อ…";
-    if (/^wss?:\/\//i.test(b)) {
-      try {
-        ws = new WebSocket(b + cfg.path);
-        ws.onopen = function () { state(true, "เกจ " + cfg.addr); msg("#linkMsg", "ต่อเกจแล้ว"); };
-        ws.onmessage = function (ev) { try { apply(JSON.parse(ev.data)); } catch (e) {} };
-        ws.onclose = function () { ws = null; state(false, "หลุด"); clearLive(); msg("#linkMsg", "การเชื่อมต่อหลุด"); };
-      } catch (e) { msg("#linkMsg", "เปิด WebSocket ไม่ได้"); }
-      simBtn.textContent = "ตัด";
-    } else {
-      pollTimer = setInterval(poll, 150); poll(); simBtn.textContent = "ตัด";
-    }
-  }
-  simBtn.addEventListener("click", function () { (pollTimer || ws) ? stop() : startGauge(); });
-  clearLive(); state(false, "ไม่มี");
-
-  /* ---------- flash: choose file, check, simulated write ---------- */
-  var crcT = [];
-  for (var n = 0; n < 256; n++) { var cc = n; for (var k = 0; k < 8; k++) cc = cc & 1 ? 0xEDB88320 ^ (cc >>> 1) : cc >>> 1; crcT[n] = cc >>> 0; }
-  function crc32(b) { var c = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c = crcT[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
-  function hex8(v) { return ("00000000" + v.toString(16)).slice(-8).toUpperCase(); }
-  function fmtSize(n) { return n < 1024 ? n + " B" : n < 1048576 ? (n / 1024).toFixed(1) + " KB" : (n / 1048576).toFixed(2) + " MB"; }
-  function hexdump(b, n) {
-    var out = []; n = Math.min(n, b.length);
-    for (var i = 0; i < n; i += 16) {
-      var h = [], a = "";
-      for (var j = 0; j < 16; j++) {
-        if (i + j < n) { var v = b[i + j]; h.push((v < 16 ? "0" : "") + v.toString(16).toUpperCase()); a += (v >= 32 && v < 127) ? String.fromCharCode(v) : "."; }
-        else h.push("  ");
-      }
-      out.push(("000" + i.toString(16)).slice(-4).toUpperCase() + "  " + h.join(" ") + "  " + a);
-    }
-    return out.join("\n");
-  }
-  var staged = null, running = false, timer = null;
-  var setFlash = makeBar("flash", 40, null, [0, 50, 100], 0, 100);
-  function mark(id, pass, yes, no) { var el = $(id); el.textContent = pass ? yes : no; el.classList.toggle("pass", pass); }
-  function flashBtn() { $("#btnFlashSim").disabled = running || !(staged && staged.size > 0 && $("#ck1").checked && $("#ck2").checked); }
-  function renderFile() {
-    var s = staged;
-    $("#fname").textContent = s ? s.name : "ยังไม่ได้เลือกไฟล์";
-    $("#finfo").hidden = !s; $("#hex").hidden = !s; $("#btnLoadMap").hidden = !(s && s.mapJson);
-    if (s) {
-      $("#fi-size").textContent = fmtSize(s.size); $("#fi-crc").textContent = hex8(s.crc); $("#fi-type").textContent = s.type;
-      $("#hex").textContent = hexdump(s.bytes, 256) + (s.size > 256 ? "\n… (แสดง 256 ไบต์แรก)" : "");
-    }
-    mark("#c-file", !!(s && s.size > 0), "ผ่าน", "ยังไม่ผ่าน");
-    mark("#c-link", linked, "ผ่าน", "ยังไม่ผ่าน");
-    flashBtn();
-  }
-  function loadFile(f) {
-    if (!f) return;
-    if (f.size > 16 * 1024 * 1024) { msg("#fmsg", "ไฟล์ใหญ่เกิน 16 MB ไฟล์แมพ ECU ปกติเล็กกว่านี้มาก"); return; }
-    var fr = new FileReader();
-    fr.onerror = function () { msg("#fmsg", "อ่านไฟล์ไม่ได้ ลองเลือกใหม่"); };
-    fr.onload = function () {
-      var bytes = new Uint8Array(fr.result), type = "ไบนารี / ไฟล์อื่น", mapJson = null;
-      try {
-        var o = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-        if (o && ok(o.fuel) && ok(o.ign)) { mapJson = o; type = "แมพของแอปนี้ (JSON)"; } else type = "JSON ที่ไม่ใช่แมพของแอปนี้";
-      } catch (e) {}
-      staged = { name: f.name, size: f.size, bytes: bytes, crc: crc32(bytes), type: type, mapJson: mapJson };
-      msg("#fmsg", mapJson ? "ไฟล์นี้โหลดเข้าตารางแก้ไขได้" : "");
-      $("#flog").textContent = ""; $("#fstep").textContent = "รอ"; $("#fpct").textContent = "0"; setFlash(0);
-      renderFile();
-    };
-    fr.readAsArrayBuffer(f);
-  }
-  $("#file").addEventListener("change", function () { loadFile(this.files && this.files[0]); this.value = ""; });
-  var drop = $("#drop");
-  ["dragenter", "dragover"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("over"); }); });
-  ["dragleave", "drop"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("over"); }); });
-  drop.addEventListener("drop", function (e) { loadFile(e.dataTransfer && e.dataTransfer.files[0]); });
-  var loadArmed = false;
-  $("#btnLoadMap").addEventListener("click", function () {
-    var b = $("#btnLoadMap");
-    if (!loadArmed) { loadArmed = true; b.textContent = "แทนที่แมพที่แก้อยู่ กดอีกครั้งเพื่อยืนยัน"; setTimeout(function () { loadArmed = false; b.textContent = "โหลดเข้าตารางแก้ไข"; }, 3500); return; }
-    loadArmed = false; b.textContent = "โหลดเข้าตารางแก้ไข";
-    maps.fuel.data = staged.mapJson.fuel; maps.ign.data = staged.mapJson.ign; persist(); edFuel.paint(); edIgn.paint();
-    msg("#fmsg", "โหลดแล้ว ไปดูที่แท็บน้ำมันและไฟ");
-  });
-  $("#ck1").addEventListener("change", flashBtn); $("#ck2").addEventListener("change", flashBtn);
-  function flog(s) { var el = $("#flog"); el.textContent += s + "\n"; el.scrollTop = el.scrollHeight; }
-  $("#btnFlashSim").addEventListener("click", function () {
-    if (running || !staged) return;
-    running = true; flashBtn(); $("#flog").textContent = "";
-    var pct = 0, N = Math.max(1, Math.ceil(staged.size / 256));
-    flog("จำลองการอัด ไม่มีอะไรถูกเขียนลง ECU");
-    flog("ไฟล์ " + staged.name + " · " + fmtSize(staged.size));
-    timer = setInterval(function () {
-      pct++; setFlash(pct); $("#fpct").textContent = pct;
-      var step;
-      if (pct <= 10) { step = "ตรวจไฟล์"; if (pct === 10) flog("ตรวจไฟล์แล้ว CRC32 " + hex8(staged.crc)); }
-      else if (pct <= 25) { step = "ลบหน่วยความจำ"; if (pct === 25) flog("ลบหน่วยความจำแล้ว"); }
-      else if (pct <= 90) { step = "เขียนบล็อก " + Math.min(N, Math.ceil((pct - 25) / 65 * N)) + "/" + N; if (pct === 90) flog("เขียนครบ " + N + " บล็อก (บล็อกละ 256 ไบต์)"); }
-      else { step = "ตรวจซ้ำ"; if (pct === 100) flog("ตรวจซ้ำ CRC32 ตรงกัน"); }
-      $("#fstep").textContent = step;
-      if (pct >= 100) { clearInterval(timer); running = false; $("#fstep").textContent = "จบการจำลอง"; flog("เสร็จ (จำลอง)"); flashBtn(); }
-    }, 70);
-  });
-  renderFile();
-
-  /* ---------- settings ---------- */
-  function msg(id, text) { $(id).textContent = text; }
-  $("#btnGauge").addEventListener("click", function () {
-    cfg = { addr: $("#gAddr").value.trim() || "192.168.4.1", path: ($("#gPath").value.trim() || "/data").replace(/^(?!\/)/, "/") };
-    $("#gAddr").value = cfg.addr; $("#gPath").value = cfg.path;
-    try { localStorage.setItem(CK, JSON.stringify(cfg)); } catch (e) {}
-    startGauge(); show("live");
-  });
-  $("#btnSerial").addEventListener("click", function () {
-    if (!("serial" in navigator)) { msg("#linkMsg", "เบราว์เซอร์หรือกรอบนี้ไม่รองรับ Web Serial นำโค้ดไปโฮสต์เป็นเว็บ HTTPS ของคุณแล้วเปิดด้วย Chrome Android"); return; }
-    navigator.serial.requestPort().then(function () { msg("#linkMsg", "ได้พอร์ตแล้ว แต่โปรโตคอลของ ECU คุณยังไม่ได้ใส่ในเว็บนี้"); })
-      .catch(function (e) { msg("#linkMsg", "เชื่อมต่อไม่ได้: " + (e && e.message ? e.message : "ถูกปฏิเสธ")); });
-  });
-  $("#btnBle").addEventListener("click", function () {
-    if (!("bluetooth" in navigator)) { msg("#linkMsg", "เบราว์เซอร์หรือกรอบนี้ไม่รองรับ Web Bluetooth นำโค้ดไปโฮสต์เป็นเว็บ HTTPS ของคุณแล้วเปิดด้วย Chrome Android"); return; }
-    navigator.bluetooth.requestDevice({ acceptAllDevices: true }).then(function (d) { msg("#linkMsg", "พบอุปกรณ์ " + (d.name || "ไม่มีชื่อ") + " แต่ยังไม่ได้ใส่โปรโตคอลของ ECU"); })
-      .catch(function (e) { msg("#linkMsg", "เชื่อมต่อไม่ได้: " + (e && e.message ? e.message : "ถูกปฏิเสธ")); });
-  });
-  function exportText() { return JSON.stringify({ app: "ecu-remap", rpm: RPM, tps: TPS, fuel: maps.fuel.data, ign: maps.ign.data }); }
-  $("#btnExport").addEventListener("click", function () { $("#io").value = exportText(); msg("#ioMsg", "สร้างข้อความแล้ว"); });
-  $("#btnCopy").addEventListener("click", function () {
-    var ta = $("#io"); if (!ta.value) ta.value = exportText();
-    function fallback() { ta.focus(); ta.select(); msg("#ioMsg", "เลือกข้อความแล้ว กดคัดลอกค้างที่ช่องข้อความ"); }
-    try { navigator.clipboard.writeText(ta.value).then(function () { msg("#ioMsg", "คัดลอกแล้ว"); }, fallback); } catch (e) { fallback(); }
-  });
-  $("#btnImport").addEventListener("click", function () {
-    try {
-      var o = JSON.parse($("#io").value);
-      if (!ok(o.fuel) || !ok(o.ign)) throw new Error("ขนาดตารางไม่ตรง");
-      maps.fuel.data = o.fuel; maps.ign.data = o.ign; persist(); edFuel.paint(); edIgn.paint(); msg("#ioMsg", "นำเข้าแล้ว");
-    } catch (e) { msg("#ioMsg", "นำเข้าไม่ได้: " + e.message); }
-  });
-  var armed = false;
-  $("#btnReset").addEventListener("click", function () {
-    var b = $("#btnReset"), label = "คืนค่าตั้งต้นทั้งสองแมพ";
-    if (!armed) { armed = true; b.textContent = "กดอีกครั้งเพื่อยืนยัน"; setTimeout(function () { armed = false; b.textContent = label; }, 3000); return; }
-    armed = false; b.textContent = label; edFuel.reset(); edIgn.reset(); msg("#ioMsg", "คืนค่าตั้งต้นแล้ว");
-  });
+/* periodic refresh of the visible tab */
+var tickN=0;
+if(onGauge)setInterval(function(){
+tickN++;
+if(cur==="files"&&(tickN%2===0||(fl&&fl.busy)))loadFl();
+if(cur==="map"&&tickN%8===0)loadMap()},500);
+updateChecks();
+if(!onGauge)clearLive();
 })();
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("./sw.js").catch(function(){});});}</script>
 </body>
 </html>
