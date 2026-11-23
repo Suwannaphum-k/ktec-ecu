@@ -1,6 +1,6 @@
 {
-  "name": "KETC ECU",
-  "short_name": "KETC ECU",
+  "name": "KTEC ECU",
+  "short_name": "KTEC ECU",
   "description": "เครื่องมือจูน ECU: ดูค่าสด แก้แมพน้ำมันและแมพไฟ",
   "start_url": "./",
   "scope": "./",
