@@ -182,6 +182,7 @@ input.sm{width:92px}
 <p>.bin คือไฟล์ที่อ่านออกมาจาก ECU ส่วน .xdf คือไฟล์บอกตำแหน่งแมพของ TunerPro ไฟล์ถูกอ่านในเครื่องของคุณเท่านั้น แก้ได้โดยไม่ต้องต่อเกจ</p>
 <div class="row"><label class="btn pri" for="tbin">เลือก .bin</label><input type="file" id="tbin" hidden><label class="btn pri" for="txdf">เลือก .xdf</label><input type="file" id="txdf" hidden></div>
 <div class="chips" id="tchips" style="margin-top:10px"></div>
+<div class="row" id="tRestoreRow" hidden style="margin-top:8px"><button class="btn" id="tRestore" type="button"></button></div>
 <div class="msg" id="tm"></div>
 </div>
 <div class="blk">
@@ -219,11 +220,12 @@ input.sm{width:92px}
 </div>
 <div class="blk" style="border-bottom:0">
 <h2>4. บันทึก / ส่งเข้าเกจ</h2>
-<p class="warn">แก้แมพแล้วเช็กซัมของไฟล์จะเปลี่ยน หน้านี้ไม่ได้คำนวณเช็กซัมให้ ถ้า ECU ตรวจเช็กซัมต้องแก้ด้วยโปรแกรมที่ใช้อยู่ก่อนอัด และเก็บไฟล์ .bin ต้นฉบับไว้เสมอ</p>
+<p class="warn">แก้แมพแล้วเช็กซัมของไฟล์จะเปลี่ยน ไฟล์ที่ดาวน์โหลดจากหน้านี้ยังไม่ได้ปรับเช็กซัม ถ้าจะเอาไปอัดด้วยโปรแกรมอื่นต้องแก้เอง ส่วนการอัดผ่านเกจหรือผ่านแท็บ OTG ระบบจะปรับเช็กซัมให้ตามชนิดไฟล์ที่รู้จักตอนอัด เก็บไฟล์ .bin ต้นฉบับไว้เสมอ</p>
 <div class="row" style="margin-bottom:8px"><label class="k" for="tname">ชื่อไฟล์</label><input type="text" id="tname" style="width:100%;max-width:300px" spellcheck="false"></div>
-<div class="row"><button class="btn pri" id="tDl" type="button" disabled>ดาวน์โหลด .bin</button><button class="btn" id="tUp" type="button" disabled>ส่งเข้าเกจ</button><button class="btn" id="tGo" type="button" hidden>ไปหน้าอัดลง ECU</button></div>
+<div class="row"><button class="btn" id="tSave" type="button">เซฟงาน</button><button class="btn pri" id="tOtg" type="button">ส่งไปอัดผ่าน OTG</button><button class="btn" id="tDl" type="button" disabled>ดาวน์โหลด .bin</button><button class="btn" id="tUp" type="button" disabled>ส่งเข้าเกจ</button><button class="btn" id="tGo" type="button" hidden>ไปหน้าอัดลง ECU</button></div>
 <div class="chan" style="border:0;padding-bottom:0" id="tupbox" hidden><div class="head"><span class="k">ส่งเข้าเกจ</span><span class="rd"><span id="tupct">0</span><i>%</i></span></div><div class="bar thin" id="bar-tup"></div></div>
 <p class="note" id="tstat"></p>
+<p class="note" id="tsavedAt"></p>
 </div>
 </section>
 
@@ -557,7 +559,7 @@ fetch("/fl/go?f="+encodeURIComponent(sel)+"&m=real&c=FLASH",{cache:"no-store"}).
 $("#btnStop").addEventListener("click",function(){fetch("/fl/stop",{cache:"no-store"}).then(function(r){return r.json()}).then(function(o){msg("#fmsg",o.msg||"")}).catch(function(){msg("#fmsg","ส่งคำสั่งหยุดไม่ได้")})});
 
 /* ---------- tune: เปิด .bin + .xdf แล้วแก้แมพ ---------- */
-var T={bin:null,orig:null,dv:null,dvo:null,crc0:"",binName:"",xdfName:"",tabs:[],flags:[],open:{},reg:0,cur:null,sel:null,anc:null,ext:false,mode:"v",undo:[],md:null,drag:false,cells:[],rh:[],ch:[]};
+var T={bin:null,orig:null,dv:null,dvo:null,crc0:"",binName:"",xdfName:"",tabs:[],flags:[],open:{},xdfTxt:"",at:0,reg:0,cur:null,sel:null,anc:null,ext:false,mode:"v",undo:[],md:null,drag:false,cells:[],rh:[],ch:[]};
 var bTu=Bar("tup",40);bTu.range(0,100,[]);
 function tmsg(t){msg("#tm",t)}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return"&#"+c.charCodeAt(0)+";"})}
@@ -765,9 +767,13 @@ tRender();tInfo();tList();$("#t-ed").scrollIntoView({block:"start"})}
 function tStat(){var b=T.bin,n=0,i;
 $("#tDl").disabled=!b;$("#tUp").disabled=!b||upBusy;$("#tUndo").disabled=!T.undo.length;
 if(!b){$("#tstat").textContent="";return}
+$("#tRestoreRow").hidden=true;clearTimeout(T.at);T.at=setTimeout(function(){tSave(true)},1500);
 for(i=0;i<b.length;i++)if(b[i]!==T.orig[i])n++;
 $("#tstat").textContent=(n?"แก้แล้ว "+n+" ไบต์ · CRC32 ใหม่ "+hex8(crc32(b))+" · เดิม "+T.crc0:"ยังไม่ได้แก้อะไร · CRC32 "+T.crc0)+" · ขนาด "+fmtSize(b.length)}
 
+function tCats(){var cs={},sl=$("#tc"),o;T.tabs.concat(T.flags).forEach(function(t){t.cat.forEach(function(c){cs[c]=1})});
+sl.textContent="";o=document.createElement("option");o.value="";o.textContent="ทุกหมวด";sl.appendChild(o);
+Object.keys(cs).sort().forEach(function(k){o=document.createElement("option");o.value=k;o.textContent=k;sl.appendChild(o)})}
 /* เปิดไฟล์ */
 var C1={0x20AC:0x80,0x201A:0x82,0x192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x2C6:0x88,0x2030:0x89,0x160:0x8A,0x2039:0x8B,0x152:0x8C,0x17D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x2DC:0x98,0x2122:0x99,0x161:0x9A,0x203A:0x9B,0x153:0x9C,0x17E:0x9E,0x178:0x9F};
 function tis(u){var o=[],i,b,s="";
@@ -796,12 +802,10 @@ $("#txdf").addEventListener("change",function(){var f=this.files&&this.files[0];
 if(f.size>20*1048576){tmsg("ไฟล์ XDF ใหญ่ผิดปกติ");return}
 readFile(f,false,function(bf){
 if(!bf){tmsg("อ่านไฟล์ไม่ได้");return}
-var r;try{r=tParse(decodeTxt(bf))}catch(e){tmsg("อ่าน XDF ไม่ได้: "+(e&&e.message||e));return}
-T.tabs=r.tabs;T.flags=r.flags;T.reg=r.reg;T.xdfName=f.name;T.cur=null;T.sel=null;$("#t-ed").hidden=true;
+var r,xt=decodeTxt(bf);try{r=tParse(xt)}catch(e){tmsg("อ่าน XDF ไม่ได้: "+(e&&e.message||e));return}
+T.tabs=r.tabs;T.flags=r.flags;T.reg=r.reg;T.xdfName=f.name;T.xdfTxt=xt;T.cur=null;T.sel=null;$("#t-ed").hidden=true;
 T.tabs.forEach(function(t){t.dirty=T.bin&&tFits(t)?tDirtyOf(t):false});
-var cs={},sl=$("#tc"),o;T.tabs.concat(T.flags).forEach(function(t){t.cat.forEach(function(c){cs[c]=1})});
-sl.textContent="";o=document.createElement("option");o.value="";o.textContent="ทุกหมวด";sl.appendChild(o);
-Object.keys(cs).sort().forEach(function(k){o=document.createElement("option");o.value=k;o.textContent=k;sl.appendChild(o)});
+tCats();
 tmsg(T.tabs.length+T.flags.length?"":"ไม่พบตารางในไฟล์นี้");tChips();tList()})});
 $("#tq").addEventListener("input",tList);$("#tc").addEventListener("change",tList);
 
@@ -866,6 +870,29 @@ sendBin(new Blob([T.bin]),nm,function(p){$("#tupct").textContent=p;bTu.set(p)},f
 upBusy=false;$("#tUp").disabled=false;tmsg(o.msg||(o.ok?"ส่งเข้าเกจแล้ว":"ส่งไม่สำเร็จ"));
 if(o.ok){sel=o.name||nm;$("#tGo").hidden=false;fetch("/fl/scan",{cache:"no-store"}).then(function(){loadFl()}).catch(function(){loadFl()})}})});
 $("#tGo").addEventListener("click",function(){show("files")});
+/* เซฟงานในเครื่อง (IndexedDB) + กู้งาน */
+function tDb(cb){try{var r=indexedDB.open("ktec_tune",1);r.onupgradeneeded=function(){r.result.createObjectStore("s")};r.onsuccess=function(){cb(r.result)};r.onerror=function(){cb(null)}}catch(e){cb(null)}}
+function tSave(quiet){if(!T.bin)return;
+tDb(function(db){if(!db){if(!quiet)tmsg("เซฟในเครื่องไม่ได้ (เบราว์เซอร์ไม่อนุญาต)");return}
+var tx=db.transaction("s","readwrite");
+tx.objectStore("s").put({bin:T.bin.buffer.slice(0),orig:T.orig.buffer.slice(0),binName:T.binName,xdf:T.xdfTxt,xdfName:T.xdfName,ts:Date.now()},"cur");
+tx.oncomplete=function(){$("#tsavedAt").textContent="เซฟล่าสุด "+new Date().toLocaleTimeString("th-TH");if(!quiet)tmsg("เซฟงานไว้ในเครื่องแล้ว (เปิดหน้านี้ใหม่แล้วกด กู้งานล่าสุด ได้)")};
+tx.onerror=function(){if(!quiet)tmsg("เซฟไม่สำเร็จ")}})}
+function tRestoreRun(d){
+T.bin=new Uint8Array(d.bin);T.orig=new Uint8Array(d.orig);T.dv=new DataView(T.bin.buffer);T.dvo=new DataView(T.orig.buffer);
+T.binName=d.binName;T.undo=[];T.cur=null;T.sel=null;$("#t-ed").hidden=true;T.crc0=hex8(crc32(T.orig));$("#tname").value=outName(d.binName);
+if(d.xdf){try{var r=tParse(d.xdf);T.tabs=r.tabs;T.flags=r.flags;T.reg=r.reg;T.xdfName=d.xdfName;T.xdfTxt=d.xdf;tCats()}catch(e){}}
+T.tabs.forEach(function(t){t.dirty=tFits(t)?tDirtyOf(t):false});
+tChips();tList();tStat();tmsg("กู้งานล่าสุดแล้ว: "+d.binName)}
+tDb(function(db){if(!db)return;var q=db.transaction("s").objectStore("s").get("cur");
+q.onsuccess=function(){var d=q.result;if(!d||T.bin)return;
+$("#tRestore").textContent="กู้งานล่าสุด: "+d.binName+" · "+new Date(d.ts).toLocaleString("th-TH");
+$("#tRestoreRow").hidden=false;$("#tRestore").onclick=function(){tRestoreRun(d)}}});
+$("#tSave").addEventListener("click",function(){if(!T.bin){tmsg("ยังไม่ได้เลือกไฟล์ .bin");return}tSave(false)});
+$("#tOtg").addEventListener("click",function(){
+if(!T.bin){tmsg("ยังไม่ได้เลือกไฟล์ .bin");return}
+if(!window.ktecOtg){tmsg("ไม่พบแท็บ OTG ในหน้านี้");return}
+window.ktecOtg.load(T.bin.slice(0),tName()||"tune.bin");tSave(true);show("otg");window.scrollTo(0,0)});
 window.addEventListener("beforeunload",function(e){if(T.bin&&tDirty()){e.preventDefault();e.returnValue=""}});
 tChips();tList();tStat();
 
@@ -1505,6 +1532,7 @@ if("usb"in navigator){navigator.usb.addEventListener("disconnect",()=>onUsbLost(
 else{
  $("#o-nousb").textContent=location.hostname==="192.168.4.1"||/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)?"หน้านี้เปิดจากเกจ (http) Chrome ไม่ให้ใช้ WebUSB ให้ไปเปิดจากลิงก์ GitHub Pages (https) ของเว็บนี้แทน":"เบราว์เซอร์นี้ใช้ WebUSB ไม่ได้ ต้องใช้ Chrome บน Android และเปิดผ่าน https";
  $("#o-nousb").hidden=false;$("#o-bUsb").disabled=true}
+window.ktecOtg={load:function(bin,name){S.bin=bin;S.name=name;S.pf=preflight(bin);log("รับไฟล์จากแท็บจูน: "+name+" ("+bin.length+" ไบต์)");render()}};
 setInterval(tick,250);keepAlive();render();
 
 })();
