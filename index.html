@@ -204,6 +204,7 @@ input.sm{width:92px}
 </div>
 <div class="tablewrap" id="t-wrap"></div>
 <div class="legend"><span>น้อย</span><i></i><span>มาก</span><span style="margin-left:auto">มุมขาว = แก้แล้ว <b id="tUnit"></b></span></div>
+<div class="k" id="taxinfo" style="margin-top:6px"></div>
 <div class="msg" id="tinfo"></div>
 <div class="tools" style="margin-top:8px">
 <input type="text" id="tv" class="sm" inputmode="decimal" placeholder="ค่า" aria-label="ค่าที่จะตั้ง">
@@ -559,7 +560,7 @@ fetch("/fl/go?f="+encodeURIComponent(sel)+"&m=real&c=FLASH",{cache:"no-store"}).
 $("#btnStop").addEventListener("click",function(){fetch("/fl/stop",{cache:"no-store"}).then(function(r){return r.json()}).then(function(o){msg("#fmsg",o.msg||"")}).catch(function(){msg("#fmsg","ส่งคำสั่งหยุดไม่ได้")})});
 
 /* ---------- tune: เปิด .bin + .xdf แล้วแก้แมพ ---------- */
-var T={bin:null,orig:null,dv:null,dvo:null,crc0:"",binName:"",xdfName:"",tabs:[],flags:[],open:{},xdfTxt:"",at:0,reg:0,cur:null,sel:null,anc:null,ext:false,mode:"v",undo:[],md:null,drag:false,cells:[],rh:[],ch:[]};
+var T={bin:null,orig:null,dv:null,dvo:null,crc0:"",binName:"",xdfName:"",tabs:[],flags:[],byId:{},open:{},xdfTxt:"",at:0,reg:0,cur:null,sel:null,anc:null,ext:false,mode:"v",undo:[],md:null,drag:false,cells:[],rh:[],ch:[]};
 var bTu=Bar("tup",40);bTu.range(0,100,[]);
 function tmsg(t){msg("#tm",t)}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return"&#"+c.charCodeAt(0)+";"})}
@@ -610,7 +611,7 @@ if(b===8){if(a.sg)dv.setInt8(p,v);else dv.setUint8(p,v)}else if(b===16){if(a.sg)
 function tAx(el,base){
 if(!el)return null;
 var ed=kid(el,"EMBEDDEDDATA"),mt=kid(el,"MATH"),vr=mt&&kid(mt,"VAR"),vn=(vr&&ga(vr,"id"))||"X",eq=mt?ga(mt,"equation"):null,
-a={cnt:num(txt(el,"INDEXCOUNT"))||0,ok:true,ident:true,lab:null,addr:null,unit:txt(el,"UNITS")},f=null;
+ei=kid(el,"EMBEDINFO"),a={cnt:num(txt(el,"INDEXCOUNT"))||0,ok:true,ident:true,lab:null,addr:null,unit:txt(el,"UNITS"),link:ei?num(ga(ei,"linkobjid")):NaN},f=null;
 if(eq&&eq.replace(/\s+/g,"").toLowerCase()!==vn.toLowerCase()){try{f=compile(eq,vn);a.ident=false}catch(e){a.ok=false}}
 a.f=f||ident;
 if(ed){var ad=num(ga(ed,"mmedaddress")),fl2=num(ga(ed,"mmedtypeflags"))||0,bits=num(ga(ed,"mmedelementsizebits"))||8,mn=num(ga(ed,"mmedminorstridebits"))||0;
@@ -623,7 +624,7 @@ var d=num(txt(el,"DECIMALPL"));a.dec=isFinite(d)?clamp(d,0,6):(a.ident?0:2);
 a.inv=(a.addr!=null&&!a.bad&&a.ok)?mkInv(a.f,a.lo,a.hi,a.ident):null;
 return a}
 function tTable(el,cats,base,isC){
-var t={title:txt(el,"TITLE")||"(ไม่มีชื่อ)",desc:txt(el,"DESCRIPTION"),cat:[],c:isC,dirty:false};
+var t={title:txt(el,"TITLE")||"(ไม่มีชื่อ)",desc:txt(el,"DESCRIPTION"),cat:[],c:isC,dirty:false,uid:num(ga(el,"uniqueid"))};
 kids(el,"CATEGORYMEM").forEach(function(m){var n=cats[num(ga(m,"category"))-1];if(n&&t.cat.indexOf(n)<0)t.cat.push(n)});
 if(isC){t.z=tAx(el,base);t.rows=1;t.cols=1}
 else{var ax={};kids(el,"XDFAXIS").forEach(function(x){ax[ga(x,"id")]=x});
@@ -643,24 +644,37 @@ kids(hd,"CATEGORY").forEach(function(c){var i=num(ga(c,"index"));if(isFinite(i))
 var rg=kid(hd,"REGION");if(rg)reg=num(ga(rg,"size"))||0}
 kids(root,"XDFTABLE").forEach(function(el){var t=tTable(el,cats,base,false);if(t)tabs.push(t)});
 kids(root,"XDFCONSTANT").forEach(function(el){var t=tTable(el,cats,base,true);if(t)tabs.push(t)});
-tabs.forEach(function(t,i){t.id=i});
+var byId={};
+tabs.forEach(function(t,i){t.id=i;if(isFinite(t.uid)&&byId[t.uid]===undefined)byId[t.uid]=t});
+tabs.forEach(function(t){
+if(t.c)return;
+[["x","cols"],["y","rows"]].forEach(function(p){var a=t[p[0]],L=a&&isFinite(a.link)?byId[a.link]:null;
+if(a&&L&&L!==t&&!a.cnt){a.cnt=L.rows*L.cols;t[p[1]]=a.cnt}})});
 var flags=[];
 kids(root,"XDFFLAG").forEach(function(el){var ed=kid(el,"EMBEDDEDDATA"),ad=ed?num(ga(ed,"mmedaddress")):NaN,mk=num(txt(el,"MASK"));
 if(!isFinite(ad)||!isFinite(mk))return;
 var bits=num(ga(ed,"mmedelementsizebits"))||8,f={title:txt(el,"TITLE")||"(ไม่มีชื่อ)",cat:[],addr:ad+base,mask:mk,ax:{bits:bits,sg:false,flt:false,le:!!((num(ga(ed,"mmedtypeflags"))||0)&2)}};
 kids(el,"CATEGORYMEM").forEach(function(m){var n=cats[num(ga(m,"category"))-1];if(n&&f.cat.indexOf(n)<0)f.cat.push(n)});
 if(bits===8||bits===16||bits===32)flags.push(f)});
-return{tabs:tabs,flags:flags,reg:reg}}
+return{tabs:tabs,flags:flags,byId:byId,reg:reg}}
 
 /* ตาราง: ที่อยู่ ค่า ตรวจขอบเขต */
 function tAddr(t,r,c){var z=t.z;return z.addr+(t.rm?r*t.cols+c:c*t.rows+r)*z.step}
 function tVals(t){var V=[],r,c;for(r=0;r<t.rows;r++){V[r]=[];for(c=0;c<t.cols;c++)V[r][c]=t.z.f(rd(t.z,T.dv,tAddr(t,r,c)))}return V}
 function fmtN(v){return isFinite(v)?String(+v.toFixed(2)):"?"}
-function tAxVals(a,n){var o=[],i;for(i=0;i<n;i++){
+function tLinked(a){var L=a&&isFinite(a.link)?T.byId[a.link]:null;return L&&L.z&&L.z.addr!=null?L:null}
+function tAxVals(a,n){var o=[],i,L=tLinked(a),z=L&&L.z;
+if(z&&!z.bad&&z.addr+(n-1)*z.step+z.bits/8<=T.bin.length){
+for(i=0;i<n;i++)o.push(fmtN(z.f(rd(z,T.dv,z.addr+i*z.step))));return o}
+for(i=0;i<n;i++){
 if(!a){o.push("");continue}
 if(a.addr!=null&&!a.bad&&a.addr+(i+1)*a.step<=T.bin.length)o.push(fmtN(a.f(rd(a,T.dv,a.addr+i*a.step))));
 else if(a.lab&&a.lab[i]!=null)o.push(a.lab[i]);else o.push(String(i))}
 return o}
+function tAxSrc(a,n){if(!a)return"ไม่มีแกน";var L=tLinked(a);
+if(L)return"ลิงก์ตาราง \""+L.title+"\"";
+if(a.addr!=null)return"ที่อยู่ 0x"+a.addr.toString(16).toUpperCase()+" ("+a.bits+" บิต)";
+return a.lab?"ป้ายใน XDF":"ไม่มีข้อมูลแกนใน XDF (แสดงลำดับ 0,1,2...)"}
 function tFits(t){var L=T.bin.length;
 function ok(a,n){return!a||a.addr==null||(!a.bad&&a.addr+(n-1)*a.step+a.bits/8<=L)}
 return ok(t.z,t.rows*t.cols)&&ok(t.x,t.cols)&&ok(t.y,t.rows)}
@@ -688,6 +702,7 @@ h+="</tr>"}
 w=$("#t-wrap");w.innerHTML=h+"</tbody></table>";
 T.cells=[].slice.call(w.querySelectorAll("td"));T.rh=[].slice.call(w.querySelectorAll("tbody th"));T.ch=[].slice.call(w.querySelectorAll("thead th")).slice(1);
 $("#tUnit").textContent=z.unit?"· "+z.unit:"";
+$("#taxinfo").textContent="แกนคอลัมน์: "+tAxSrc(t.x)+" · แกนแถว: "+tAxSrc(t.y);
 tPaint()}
 function tPaint(){var t=T.cur,s=T.sel,r,c;if(!t||!s)return;
 for(r=0;r<t.rows;r++)for(c=0;c<t.cols;c++)T.cells[r*t.cols+c].classList.toggle("sel",r>=s.r0&&r<=s.r1&&c>=s.c0&&c<=s.c1);
@@ -803,7 +818,7 @@ if(f.size>20*1048576){tmsg("ไฟล์ XDF ใหญ่ผิดปกติ")
 readFile(f,false,function(bf){
 if(!bf){tmsg("อ่านไฟล์ไม่ได้");return}
 var r,xt=decodeTxt(bf);try{r=tParse(xt)}catch(e){tmsg("อ่าน XDF ไม่ได้: "+(e&&e.message||e));return}
-T.tabs=r.tabs;T.flags=r.flags;T.reg=r.reg;T.xdfName=f.name;T.xdfTxt=xt;T.cur=null;T.sel=null;$("#t-ed").hidden=true;
+T.tabs=r.tabs;T.flags=r.flags;T.byId=r.byId;T.reg=r.reg;T.xdfName=f.name;T.xdfTxt=xt;T.cur=null;T.sel=null;$("#t-ed").hidden=true;
 T.tabs.forEach(function(t){t.dirty=T.bin&&tFits(t)?tDirtyOf(t):false});
 tCats();
 tmsg(T.tabs.length+T.flags.length?"":"ไม่พบตารางในไฟล์นี้");tChips();tList()})});
@@ -881,7 +896,7 @@ tx.onerror=function(){if(!quiet)tmsg("เซฟไม่สำเร็จ")}})}
 function tRestoreRun(d){
 T.bin=new Uint8Array(d.bin);T.orig=new Uint8Array(d.orig);T.dv=new DataView(T.bin.buffer);T.dvo=new DataView(T.orig.buffer);
 T.binName=d.binName;T.undo=[];T.cur=null;T.sel=null;$("#t-ed").hidden=true;T.crc0=hex8(crc32(T.orig));$("#tname").value=outName(d.binName);
-if(d.xdf){try{var r=tParse(d.xdf);T.tabs=r.tabs;T.flags=r.flags;T.reg=r.reg;T.xdfName=d.xdfName;T.xdfTxt=d.xdf;tCats()}catch(e){}}
+if(d.xdf){try{var r=tParse(d.xdf);T.tabs=r.tabs;T.flags=r.flags;T.byId=r.byId;T.reg=r.reg;T.xdfName=d.xdfName;T.xdfTxt=d.xdf;tCats()}catch(e){}}
 T.tabs.forEach(function(t){t.dirty=tFits(t)?tDirtyOf(t):false});
 tChips();tList();tStat();tmsg("กู้งานล่าสุดแล้ว: "+d.binName)}
 tDb(function(db){if(!db)return;var q=db.transaction("s").objectStore("s").get("cur");
