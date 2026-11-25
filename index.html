@@ -112,6 +112,19 @@ input.sm{width:92px}
 .fi.tr .fn{min-width:0}
 .ti{color:var(--dim);font-size:13px}
 .fcb{width:20px;height:20px;accent-color:var(--hi);flex:none;margin:0}
+.ochk{display:flex;gap:10px;align-items:flex-start;margin:8px 0;line-height:1.4;font-size:14px}
+.ochk input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--hi);flex:none}
+.oitems{list-style:none;margin:8px 0 0;padding:0}
+.oitems li{padding:5px 0 5px 24px;position:relative;font-size:13px;line-height:1.4;border-bottom:1px solid var(--off)}
+.oitems li::before{position:absolute;left:2px;top:5px;font-weight:700}
+.oitems li.l-ok::before{content:"✓";color:#8fd193}.oitems li.l-warn::before{content:"!";color:var(--hi)}
+.oitems li.l-bad::before{content:"✕";color:var(--red)}
+.chip.warn{background:#3a3217;color:var(--hi)}
+.opbar{height:16px;background:var(--off);margin:8px 0 4px}.opbar i{display:block;height:100%;width:0;background:var(--hi)}
+.onum{font-family:var(--f-num);font-size:13px;color:var(--dim)}
+.oph{font-family:var(--f-num);font-size:20px}
+#o-log{width:100%;height:170px;background:#111214;border:1px solid var(--line);color:#b9bdb2;font-family:var(--f-num);font-size:12px;padding:8px;resize:vertical;white-space:pre;overflow:auto;margin-top:12px}
+#o-res{font-weight:700;margin-top:6px}.res-ok{color:#8fd193}.res-bad{color:#f08a7c}
 @media(prefers-reduced-motion:reduce){td.live::after{animation:none}}
 </style>
 </head>
@@ -123,6 +136,7 @@ input.sm{width:92px}
 <button role="tab" data-tab="map" aria-selected="false" type="button">แมพ</button>
 <button role="tab" data-tab="tune" aria-selected="false" type="button">จูน</button>
 <button role="tab" data-tab="files" aria-selected="false" type="button">ไฟล์/อัด</button>
+<button role="tab" data-tab="otg" aria-selected="false" type="button">OTG</button>
 <button role="tab" data-tab="link" aria-selected="false" type="button">เชื่อมต่อ</button>
 </nav>
 
@@ -255,6 +269,49 @@ input.sm{width:92px}
 </div>
 </section>
 
+<section id="tab-otg" hidden>
+<p class="sub">อัดไฟล์ลง ECU ตรงจากมือถือผ่านสาย FTDI (OTG) ไม่ผ่านเกจ ใช้ได้เมื่อเปิดหน้านี้จากลิงก์ https (GitHub Pages) ด้วย Chrome บน Android</p>
+<div class="blk">
+<h2>1. ต่อสายและต่อ ECU</h2>
+<div class="warn" id="o-nousb" hidden></div>
+<p class="k">สาย FTDI ต้องเป็นแบบที่มีวงจรแปลงระดับ K-line (เช่นใช้ L9637D) ต่อกับสายข้อมูลของ ECU ห้ามต่อสาย TTL ธรรมดาเข้า K-line 12V ตรง ๆ</p>
+<div class="row">
+<button class="btn pri" id="o-bUsb" type="button">เชื่อมต่อสาย FTDI</button>
+<button class="btn" id="o-bEcu" type="button" disabled>ต่อ ECU</button>
+</div>
+<label class="ochk"><input type="checkbox" id="o-cEcho" checked><span>สายมีเสียงสะท้อน (echo) คือ RX ได้ยินสิ่งที่ TX ส่ง ตรงกับค่าตั้งของเกจ (ติ๊กไว้ถ้าไม่แน่ใจ ทดสอบด้วยปุ่มข้างล่าง)</span></label>
+<div class="row"><button class="btn" id="o-bLoop" type="button" disabled>ทดสอบ echo (55 AA 55)</button></div>
+<div class="chips" id="o-chips"></div>
+<div class="onum" id="o-ecuinfo"></div>
+</div>
+
+<div class="blk">
+<h2>2. เลือกไฟล์ .bin</h2>
+<div class="row"><label class="btn pri" for="o-fIn">เลือกไฟล์ .bin</label><input type="file" id="o-fIn" hidden></div>
+<div class="onum" id="o-finfo" style="margin-top:8px"></div>
+<ul class="oitems" id="o-items"></ul>
+</div>
+
+<div class="blk">
+<h2>3. อัดลง ECU</h2>
+<div class="seg" id="o-mode"><button class="btn act" type="button" data-m="sim">SIM ทดสอบ (ไม่ส่งอะไรเข้า ECU)</button><button class="btn" type="button" data-m="real">REAL อัดจริง</button></div>
+<div id="o-realbox" hidden style="margin-top:10px">
+<div class="warn">อัดจริงจะลบและเขียนหน่วยความจำของ ECU ถ้าไฟดับหรือสายหลุดกลางทาง กล่องอาจใช้งานไม่ได้จนกว่าจะอัดใหม่ ต่อแบตเตอรี่ให้เต็ม เปิดสวิตช์กุญแจ (ON) เครื่องดับ และไม่ปิดหน้านี้หรือล็อกจอระหว่างอัด</div>
+<label class="ochk"><input type="checkbox" id="o-cBat"><span>ไฟเลี้ยงนิ่ง สายต่อแน่น และฉันเก็บไฟล์ .bin ต้นฉบับของกล่องนี้ไว้แล้ว</span></label>
+<label class="ochk" id="o-rowAck" hidden><input type="checkbox" id="o-cAck"><span>รับทราบคำเตือนในข้อ 2 (ตรวจไฟล์ไม่ผ่านบางข้อแต่ไม่ถึงขั้นห้ามอัด)</span></label>
+</div>
+<div class="row" style="margin-top:10px"><button class="btn pri" id="o-bGo" type="button" disabled>เริ่ม SIM</button><button class="btn neg" id="o-bStop" type="button" hidden>หยุด</button></div>
+<div style="margin-top:12px" id="o-prog" hidden>
+<div class="oph" id="o-ph">-</div>
+<div class="opbar"><i id="o-barI"></i></div>
+<div class="onum" id="o-pnum"></div>
+<div id="o-res"></div>
+</div>
+<textarea id="o-log" readonly></textarea>
+</div>
+</div>
+</section>
+
 <section id="tab-link" hidden>
 <div class="blk">
 <h2>เกจกับ ECU</h2>
@@ -287,7 +344,7 @@ $("#stHost").textContent=onGauge?location.hostname:"ไม่ได้เปิ�
 if(!onGauge)$("#offgauge").hidden=false;
 
 /* ---------- tabs ---------- */
-var TABS=["live","map","tune","files","link"],cur="live";
+var TABS=["live","map","tune","files","otg","link"],cur="live";
 function show(n){cur=n;TABS.forEach(function(t){$("#tab-"+t).hidden=t!==n});
 document.querySelectorAll(".tabs button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.tab===n))});
 if(n==="map")loadMap();if(n==="files")loadFl();if(n==="link")loadId()}
@@ -816,6 +873,489 @@ if(cur==="files"&&(tickN%2===0||(fl&&fl.busy)))loadFl();
 if(cur==="map"&&tickN%8===0)loadMap()},500);
 updateChecks();
 if(!onGauge)clearLive();
+})();
+</script>
+<script>
+(function(){
+"use strict";
+
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const hex=(n,w)=>n.toString(16).toUpperCase().padStart(w||2,"0");
+class Fail extends Error{constructor(st,msg){super(msg);this.st=st}}
+
+/* ---------------- CRC / เช็กซัม ---------------- */
+const CRCT=(()=>{const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let k=0;k<8;k++)c=c&1?(c>>>1)^0xEDB88320:c>>>1;t[i]=c>>>0}return t})();
+function crc32(d){let c=0xFFFFFFFF;for(let i=0;i<d.length;i++)c=CRCT[(c^d[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function cks(a,n){let s=0;for(let i=0;i<n;i++)s+=a[i];return(0x100-(s&255))&255}
+
+/* ---------------- FTDI ผ่าน WebUSB ---------------- */
+function clkbits(baud,clk,cd){const fc=[0,3,2,4,1,5,6,7];
+ if(baud>=clk/cd)return 0;
+ if(baud>=clk/(cd+Math.floor(cd/2)))return 1;
+ if(baud>=clk/(2*cd))return 2;
+ const d=Math.floor(clk*16/cd/baud);let bd=(d&1)?Math.floor(d/2)+1:Math.floor(d/2);
+ if(bd>0x20000)bd=0x1ffff;
+ return(bd>>3)|(fc[bd&7]<<14)}
+function ftdiBaud(bcd,baud){
+ const h=(bcd===0x700||bcd===0x800||bcd===0x900);
+ let enc=h?clkbits(baud,120e6,10)|0x20000:clkbits(baud,48e6,16);
+ let value=enc&0xFFFF,index;
+ if(bcd===0x700||bcd===0x800)index=((enc>>>8)&0xFF00)|1;else index=enc>>>16;
+ return{value,index}}
+class Ftdi{
+ constructor(onData){this.onData=onData;this.dev=null;this.run=false}
+ async open(){
+  const dev=await navigator.usb.requestDevice({filters:[]});
+  log("เลือกอุปกรณ์ VID:PID = "+hex(dev.vendorId,4)+":"+hex(dev.productId,4)+" "+(dev.productName||""));
+  if(dev.vendorId!==0x0403)throw new Error("ไม่ใช่ชิป FTDI (VID ต้องเป็น 0403) หน้านี้รองรับเฉพาะ FTDI");
+  await dev.open();
+  if(!dev.configuration)await dev.selectConfiguration(1);
+  await dev.claimInterface(0);
+  const eps=dev.configuration.interfaces[0].alternates[0].endpoints;
+  const ei=eps.find(e=>e.direction==="in"&&e.type==="bulk"),eo=eps.find(e=>e.direction==="out"&&e.type==="bulk");
+  if(!ei||!eo)throw new Error("ไม่พบ endpoint ของ FTDI");
+  this.dev=dev;this.inN=ei.endpointNumber;this.outN=eo.endpointNumber;this.pk=ei.packetSize||64;
+  this.bcd=(dev.deviceVersionMajor<<8)|(dev.deviceVersionMinor<<4)|dev.deviceVersionSubminor;
+  this.ifc=(this.bcd===0x500||this.bcd===0x700||this.bcd===0x800)?1:0;
+  this.name=dev.productName||"FTDI";
+  await this.ctl(0,0,this.ifc);                 // reset
+  await this.ctl(2,0,this.ifc);                 // ไม่ใช้ flow control
+  await this.ctl(9,4,this.ifc);                 // latency timer 4 ms
+  await this.setBaud(10400);
+  await this.setBreak(false);
+  await this.ctl(0,1,this.ifc);await this.ctl(0,2,this.ifc);   // ล้าง buffer
+  this.run=true;this.loop()}
+ ctl(req,value,index){return this.dev.controlTransferOut({requestType:"vendor",recipient:"device",request:req,value,index})}
+ async setBaud(b){const x=ftdiBaud(this.bcd,b);await this.ctl(3,x.value,x.index)}
+ setBreak(on){return this.ctl(4,8|(on?0x4000:0),this.ifc)}      // 8N1  (bit14 = break = TX ต่ำ)
+ write(a){return this.dev.transferOut(this.outN,Uint8Array.from(a))}
+ async loop(){
+  while(this.run){
+   try{
+    const r=await this.dev.transferIn(this.inN,4096);
+    if(r.status==="ok"&&r.data){
+     const u=new Uint8Array(r.data.buffer,r.data.byteOffset,r.data.byteLength);
+     for(let p=0;p<u.length;p+=this.pk){const seg=u.subarray(p,Math.min(p+this.pk,u.length));if(seg.length>2)this.onData(seg.subarray(2))}
+    }else if(r.status==="stall"){await this.dev.clearHalt("in",this.inN)}
+   }catch(e){if(this.run){this.run=false;onUsbLost()}break}
+  }}
+ async close(){this.run=false;try{await this.dev.close()}catch(e){}}
+}
+
+/* ---------------- สถานะ ---------------- */
+const S={ftdi:null,echo:true,rx:[],rep:[],usb:false,ecuOk:false,busy:false,abort:false,running:false,
+ bin:null,name:"",pf:null,mode:"sim",done:0,total:0,sent:0,t0:0,wr0:0,wr1:0,dirty:false,wl:null,fails:0};
+function log(m){const l=$("#o-log");l.value+=m+"\n";l.scrollTop=l.scrollHeight}
+function onUsbLost(){S.usb=false;S.ecuOk=false;log("สาย USB หลุด");if(S.running){S.abort=true}render()}
+
+/* ---------------- K-line ชั้นล่าง (ตรงกับ flTalk ของเกจ) ---------------- */
+async function waitTx(n){
+ if(S.echo){const t0=performance.now();while(S.rx.length<n&&performance.now()-t0<n*1.1+150)await sleep(1)}
+ else await sleep(n+2)}
+async function talk(fr,gap){
+ S.rep=[];S.rx.length=0;
+ await S.ftdi.write(fr);
+ const n=fr.length;await waitTx(n);
+ if(gap)await sleep(gap);
+ const tmo=250+2*n,skip=S.echo?n:0,t0=performance.now();
+ for(;;){
+  const rx=S.rx,got=rx.length;
+  if(S.echo&&got>=n){for(let i=0;i<n;i++)if(rx[i]!==fr[i]){log("ECHO ไม่ตรง: "+rx.slice(0,16).map(x=>hex(x)).join(" "));return false}}
+  if(got>=skip+4){
+   const L=rx[skip+1];
+   if(L>=4&&L<=48&&got>=skip+L){const f=rx.slice(skip,skip+L);if(cks(f,L-1)===f[L-1])S.rep=f;break}
+  }
+  if(performance.now()-t0>=tmo)break;
+  await sleep(1);
+ }
+ return S.rep.length>0}
+function findFrame(b,hdr,id3,chk){
+ for(let i=0;i+4<=b.length;i++){
+  if(b[i]!==hdr)continue;const L=b[i+1];
+  if(L<4||i+L>b.length)continue;
+  if(chk&&b[i+3]!==id3)continue;
+  if(cks(b.slice(i,i+L),L-1)!==b[i+L-1])continue;
+  return i}
+ return -1}
+async function sniff(req,waitMs){S.rx.length=0;await S.ftdi.write(req);await sleep(req.length+waitMs);return S.rx.slice()}
+async function wakeSeq(){
+ const f=S.ftdi;
+ await f.setBreak(false);await sleep(20);
+ await f.setBreak(true);await sleep(70);
+ await f.setBreak(false);await sleep(120);
+ const w=await sniff([0xFE,0x04,0x72,0x8C],100),i=await sniff([0x72,0x05,0x00,0xF0,0x99],100);
+ return{wake:findFrame(w,0x0E,0,false)>=0,init:findFrame(i,0x02,0,false)>=0}}
+async function readTable(t){
+ const rq=[0x72,0x05,0x71,t,0];rq[4]=cks(rq,4);
+ S.rx.length=0;await S.ftdi.write(rq);await waitTx(rq.length);
+ const t0=performance.now();
+ while(performance.now()-t0<150){if(findFrame(S.rx,0x02,t,true)>=0)return true;await sleep(2)}
+ return false}
+async function pingEcu(){return(await readTable(0x17))||(await readTable(0x11))}
+async function flWait(ms){const t0=performance.now();while(performance.now()-t0<ms){if(S.abort)return false;await sleep(20)}return!S.abort}
+
+/* ---------------- สร้างเฟรมเขียน (ตรงกับ flBuildData / shBuildData) ---------------- */
+function buildData(hd,hid,data,blk,addrU,nextU){
+ const L=blk+11,o=new Array(L).fill(0);
+ o[0]=hd;o[1]=L;o[2]=hid;o[3]=0x06;o[4]=(addrU>>8)&255;o[5]=addrU&255;
+ for(let i=0;i<blk;i++)o[6+i]=data[i];
+ o[6+blk]=(nextU>>8)&255;o[7+blk]=nextU&255;
+ let s=0;for(let i=4;i<8+blk;i++)s+=o[i];
+ o[8+blk]=(255-((s-1)>>8))&255;o[9+blk]=(-s)&255;o[10+blk]=cks(o,10+blk);
+ return o}
+
+/* ---------------- Keihin ---------------- */
+const FK={KEY1:[0x7D,0x08,0x01,0x02,0x50,0x47,0x4D,0x94],KEY2:[0x7D,0x08,0x01,0x03,0x2D,0x46,0x49,0xBB],PING:[0x7E,0x06,0x01,0x01,0x00,0x7A],
+S1:[0x7E,0x05,0x01,0x02,0x7A],S2:[0x7E,0x07,0x01,0x03,0x00,0x00,0x77],ERASE:[0x7E,0x0B,0x01,0x0B,0x00,0x00,0x00,0xFF,0xFF,0xFF,0x6E],
+S3:[0x7E,0x07,0x01,0x0E,0x01,0x90,0xDB],S4:[0x7E,0x06,0x01,0x04,0xFF,0x78],S5:[0x7E,0x05,0x01,0x05,0x77],
+F1:[0x7E,0x05,0x01,0x07,0x75],F2:[0x7E,0x05,0x01,0x08,0x74],F3:[0x7E,0x05,0x01,0x09,0x73],F4:[0x7E,0x05,0x01,0x0A,0x72],F5:[0x7E,0x05,0x01,0x0C,0x70],F6:[0x7E,0x05,0x01,0x0D,0x6F]};
+const SH_SIZE_OK=sz=>sz===262144||sz===393216;
+function geometry(sz,e7,db){
+ const g={base:0x8000,chk:-1,ktype:0},have=!!e7;
+ const eq=a=>have&&a.every((v,i)=>e7[i]===v);
+ const sigAA7=eq([255,255,255,0xAA,0xAA,0xAA,0xAA]),sigRh=eq([255,255,255,0,0,0,0]),sigFF=eq([255,255,255,255,255,255,255]);
+ const endAA4=have&&e7[3]===255&&e7[4]===255&&e7[5]===0xAA&&e7[6]===0xAA;
+ if((sz===57344||sz===32768)&&endAA4)g.ktype=1;else if(sz===262144&&sigAA7)g.ktype=2;
+ let sk=false,sb=0,sc=-1;
+ if(sz===49152){sb=0x4000;sc=0x7600;sk=true}
+ else if(sz===57344){sb=0;sc=0xDFEF;sk=true}
+ else if(sz===65536||sz===98304){sb=0x8000;sc=0;sk=true}
+ else if(sz===131072){sb=0xE0000;sc=0xB000;sk=true}
+ else if(sz===262144&&(sigRh||sigAA7||sigFF)){sb=0;sc=0x3FFF8;sk=true}
+ else if(sz===524288&&sigFF){sb=0;sc=0x7FFF8;sk=true}
+ else if(sz===1048576){sb=0;sc=sigAA7?0xFFFF8:0x7FFF8;sk=true}
+ if(db){
+  if(sk&&db[0]!==sb)return{err:"ไฟล์ไม่ตรงกับกล่องนี้ (start ต่างกัน: ไฟล์ 0x"+sb.toString(16)+" กล่อง 0x"+db[0].toString(16)+")"};
+  if(db[1]>=0&&db[1]>=sz)return{err:"ไฟล์เล็กเกินไปสำหรับกล่องนี้"};
+  g.base=db[0];g.chk=db[1]>=0?db[1]:(sk?sc:-1);
+ }else if(sk){g.base=sb;g.chk=sc}
+ else return{err:"ไม่รู้จักขนาดไฟล์/กล่อง จึงไม่ทราบ start offset"};
+ return{g}}
+
+async function keihinRun(bin,real){
+ const sz=bin.length,e7=sz>=7?Array.from(bin.slice(sz-7)):null;
+ S.total=sz;
+ if(real&&!S.ecuOk)throw new Fail(3,"ยังไม่ได้ต่อ ECU");
+ const ge=geometry(sz,e7,null);if(ge.err)throw new Fail(3,ge.err);
+ const geo=ge.g,fbase=geo.base,ktype=geo.ktype,BS=ktype===1?64:128,skipBlank=ktype===0&&sz<=1048576;
+ let chkOff=geo.chk;if(chkOff>=0&&chkOff>=sz)chkOff=-1;
+ S.phase="ตรวจไฟล์";
+ let sum8=0;for(let i=0;i<sz;i++)if(i!==chkOff)sum8=(sum8+bin[i])&255;
+ const chkVal=(0-sum8)&255,chkOrig=chkOff>=0?bin[chkOff]:0;
+ const nb=new Uint8Array(Math.ceil(sz/128));
+ for(let i=0;i<sz;i++)if(bin[i]!==0xFF)nb[i>>7]=1;
+ if(chkOff>=0)nb[chkOff>>7]=1;
+ log("Keihin start=0x"+hex(fbase,6)+" block="+BS+" chkOff="+(chkOff<0?"-":"0x"+hex(chkOff,6))+" chk ไฟล์="+hex(chkOrig)+" ต้องเป็น="+hex(chkVal)+(chkOff>=0&&chkOrig!==chkVal?" (จะแก้)":"")+" skipBlank="+skipBlank);
+ const T=(f,gap)=>talk(f,gap||0);
+ if(real){
+  if(S.abort)throw new Fail(4,"ยกเลิก");
+  S.phase="ปลดล็อก";
+  let ok=false;
+  for(let t=0;t<3&&!ok;t++){ok=await T(FK.KEY1);if(!ok&&!await flWait(500))throw new Fail(4,"ยกเลิก")}
+  if(!ok)throw new Fail(3,"UNLOCK: ECU ไม่ตอบ (KEY1)");
+  await T(FK.KEY2);
+  if(!await flWait(200))throw new Fail(4,"ยกเลิก");
+  await T(FK.PING);
+  S.phase="รอ ECU 10 วินาที";
+  if(!await flWait(10500))throw new Fail(4,"ยกเลิก");
+  S.phase="เตรียมลบ";
+  if(!await T(FK.S1,250))throw new Fail(3,"PREPARE 1: ECU ไม่ตอบ");
+  if(!await T(FK.S2))throw new Fail(3,"PREPARE 2: ECU ไม่ตอบ");
+  await T(FK.PING);
+  S.dirty=true;
+  S.phase="กำลังลบ";
+  await T(FK.ERASE);await T(FK.PING);await T(FK.S3);
+  if(!(await T(FK.S4)&&S.rep.length>3&&S.rep[3]===0x00))throw new Fail(3,"ลบไม่สำเร็จ (S4) - อัดใหม่");
+  if(!await flWait(2000))throw new Fail(4,"ยกเลิก - ECU เขียนไม่ครบ");
+  if(!(await T(FK.S5,250)&&S.rep.length>3&&S.rep[3]===0x00)){
+   if(S.rep.length>3&&S.rep[3]===0xFA)throw new Fail(3,"ลบไม่สำเร็จ - ECM ถูกบล็อก");
+   throw new Fail(3,"ลบไม่สำเร็จ (S5) - อัดใหม่")}
+  await T(FK.PING);
+ }
+ S.phase=real?"กำลังเขียน":"จำลองการเขียน";S.wr0=performance.now();
+ const totalBlk=Math.ceil(sz/BS),stepU=BS/16;
+ let blk=0,unit=fbase/16;
+ while(blk<totalBlk){
+  if(S.abort)throw new Fail(4,S.dirty?"ยกเลิก - ECU เขียนไม่ครบ":"ยกเลิก");
+  const off=blk*BS,n=Math.min(BS,sz-off),data=new Array(BS).fill(0xFF);
+  for(let i=0;i<n;i++)data[i]=bin[off+i];
+  if(chkOff>=0&&chkOff>=off&&chkOff<off+n)data[chkOff-off]=chkVal;
+  let last=false,next=blk+1;
+  if(skipBlank){while(next<totalBlk&&!nb[(next*BS)>>7])next++;if(next>=totalBlk)last=true}
+  else if(next>=totalBlk)last=true;
+  const nextU=last?0:unit+(next-blk)*stepU;
+  if(real){
+   const fr=buildData(0x7E,0x01,data,BS,unit,nextU);
+   let ok=false;
+   for(let t=0;t<3&&!ok;t++){if(await T(fr))ok=S.rep.length===5;if(!ok){if(S.abort)break;await sleep(20)}}
+   if(!ok){if(S.abort)throw new Fail(4,"ยกเลิก - ECU เขียนไม่ครบ");throw new Fail(3,"ไม่ได้ ACK ที่ 0x"+hex(unit*16,6)+" - อัดใหม่")}
+   if(BS===64&&((blk+1)%2)===0){await T(FK.F1);if(!await flWait(100))throw new Fail(4,"ยกเลิก - ECU เขียนไม่ครบ")}
+  }else await sleep(4);
+  S.sent+=n;S.done=last?sz:next*BS;
+  if(last)break;
+  blk=next;unit=nextU;
+ }
+ S.done=sz;S.wr1=performance.now();
+ if(real){
+  S.phase="จบงาน";
+  if(BS===64){await T(FK.F1);if(!await flWait(100))throw new Fail(4,"ยกเลิก")}
+  await T(FK.F2);if(!await flWait(1000))throw new Fail(4,"ยกเลิก");
+  await T(FK.PING);
+  await T(FK.F3);if(!await flWait(1000))throw new Fail(4,"ยกเลิก");
+  await T(FK.PING);
+  await T(FK.F4);if(!await flWait(1000))throw new Fail(4,"ยกเลิก");
+  await T(FK.PING);
+  await T(FK.F5);if(!await flWait(1000))throw new Fail(4,"ยกเลิก");
+  if(!(await T(FK.PING)&&S.rep.length>3&&S.rep[3]===0x0F))throw new Fail(3,"จบงาน: ผลไม่ใช่ 0F (ข้อมูลถูกเขียนแล้ว)");
+  const fin=await T(FK.F6);
+  if(!(fin&&S.rep.length>3&&S.rep[3]===0x0F))throw new Fail(3,"จบงาน: ผลไม่ใช่ 0F (ข้อมูลถูกเขียนแล้ว)");
+  return"อัดสำเร็จ - ปิด/เปิดสวิตช์กุญแจ 1 ครั้ง"}
+ return"SIM เสร็จ - ไม่ได้ส่งอะไรเข้า ECU"}
+
+/* ---------------- Shindengen ---------------- */
+const SH={KEY1:[0x7B,0x08,0x02,0x02,0x50,0x19,0x76,0x9A],KEY2:[0x7B,0x08,0x02,0x03,0x25,0x37,0x86,0x96],SEED:[0x7B,0x05,0x02,0x04,0x7A],
+P1:[0x7C,0x06,0x02,0x01,0x00,0x7B],ERASE:[0x7C,0x0B,0x02,0x0B,0x00,0x00,0x00,0xFF,0xFF,0xFF,0x6F],P3:[0x7C,0x07,0x02,0x0E,0x01,0x00,0x6C],
+P4:[0x7C,0x06,0x02,0x04,0xFF,0x79],P5:[0x7C,0x05,0x02,0x05,0x78],F1:[0x7C,0x05,0x02,0x08,0x75],F2:[0x7C,0x05,0x02,0x09,0x74],
+F3:[0x7C,0x05,0x02,0x0A,0x73],F4:[0x7C,0x05,0x02,0x0C,0x71],F5:[0x7C,0x05,0x02,0x0D,0x70]};
+const SIG_W=[0x11,0x12,0x13,0x14,0x15,0x15,0x17],SIG_V850=[83,86,56,53,48],SIG_RH850=[83,72,56,53,48],SIG_A5=[0xA5,0xA5,0xA5,0xA5,0x00],SIG_END=[0x5A,0x5A,0x5A,0x5A],SIG_D007=[0xD0,0x07];
+function find(d,pat,from,limit){
+ const pn=pat.length,end=Math.min(limit,d.length-pn+1);
+ for(let i=from;i<end;i++){if(d[i]===pat[0]){let k=1;while(k<pn&&d[i+k]===pat[k])k++;if(k===pn)return i}}
+ return-1}
+function shDetect(d){
+ const sz=d.length;
+ if(sz<262144||!SIG_END.every((v,i)=>d[sz-4+i]===v))return{err:"ไม่ใช่ไฟล์ Shindengen (ท้ายไฟล์ไม่ใช่ 5A5A5A5A)"};
+ const lim=sz-7,pV=find(d,SIG_V850,0,lim),pR=find(d,SIG_RH850,0,lim);
+ if(pV>=0&&(pR<0||pV<pR))return{start:0x10000,type:3};
+ if(pR>=0){const m=SIG_A5.every((v,i)=>d[0xA000+i]===v);return{start:m?0xA000:0x10000,type:m?5:4}}
+ if(find(d,SIG_W,0,lim)>=0)return{start:0x10000,type:3};
+ return{err:"ไม่พบลายเซ็น Shindengen ในไฟล์"}}
+function sum32(d,from,end){let acc=0;let pos=from;while(pos+4<=end){acc=(acc+(d[pos]|(d[pos+1]<<8)|(d[pos+2]<<16)|(d[pos+3]<<24)))>>>0;pos+=4}return acc}
+function shAutoChecksum(d){          // ปรับ d ให้ผลรวมเป็น 0  คืนตำแหน่งที่แก้หรือ -1
+ const sz=d.length;let from=0;
+ for(;;){
+  const i=find(d,SIG_W,from,sz-SIG_W.length);if(i<0)return-1;
+  const j=find(d,SIG_D007,i+SIG_W.length,sz-6);
+  if(j>=0){
+   let a=j;if((a&3)===2)a-=6;
+   if(a<4)return-1;
+   const sum=(sum32(d,0,a-4)+sum32(d,a,sz))>>>0,neg=(0-sum)>>>0;
+   for(let k=0;k<4;k++)d[a-4+k]=(neg>>>(8*k))&255;
+   return a-4}
+  from=i+1}}
+function shKeyCalc(b,s0h,s1){
+ const s0=((s0h<<8)|s1)>>>0,a=(b[1]<<8)|b[0],bb=(b[3]<<8)|b[2],c=(b[5]<<8)|b[4];
+ const dd=(Math.imul(bb,(s0+a)>>>0)&0xFFFF)>>>0,v=c>0?dd+(s0%c):dd+s0;
+ return[(v>>8)&255,v&255]}
+function shKey(d,s0,s1){
+ const sz=d.length;let from=0;
+ for(;;){
+  const i=find(d,SIG_W,from,sz-SIG_W.length);if(i<0)return null;
+  for(let p=i+SIG_W.length;p+10<sz;p++){
+   if(d[p+8]===0xEE&&(d[p+9]===0x00||d[p+9]===0xFF))return shKeyCalc(d.subarray(p,p+6),s0,s1)}
+  from=i+1}}
+
+async function shRun(bin,real){
+ const sz=bin.length;S.total=sz;
+ S.phase="ตรวจไฟล์";
+ const d=bin.slice();
+ const inf=shDetect(d);if(inf.err)throw new Fail(3,inf.err);
+ const chkAt=shAutoChecksum(d);
+ if(!shKey(d,0x12,0x34))throw new Fail(3,"ไม่พบข้อมูล key ในไฟล์");
+ const start=inf.start;if(start>=sz)throw new Fail(3,"start offset ผิด");
+ log("Shindengen type="+inf.type+" start=0x"+hex(start,6)+" เช็กซัม@"+(chkAt<0?"-":"0x"+hex(chkAt,6)));
+ const T=(f,gap)=>talk(f,gap===undefined?0:gap),CG=150;
+ if(real){
+  if(!S.ecuOk)throw new Fail(3,"ยังไม่ได้ต่อ ECU");
+  if(S.abort)throw new Fail(4,"ยกเลิก");
+  S.phase="ปลดล็อก";
+  await T(SH.KEY1);await T(SH.KEY2);
+  S.phase="รอ ECU 10 วินาที";
+  if(!await flWait(10000))throw new Fail(4,"ยกเลิก");
+  S.phase="seed / key";
+  let ok=false;
+  for(let t=0;t<3&&!ok;t++){
+   if(await T(SH.SEED,CG))ok=(S.rep.length>=6&&S.rep[1]===7&&S.rep[3]===0);
+   if(!ok&&!await flWait(500))throw new Fail(4,"ยกเลิก")}
+  if(!ok)throw new Fail(3,"SEED: ไม่ตอบ/ตอบผิด");
+  const k=shKey(d,S.rep[4],S.rep[5]);if(!k)throw new Fail(3,"ไม่พบข้อมูล key ในไฟล์");
+  const kf=[0x7B,0x07,0x02,0x05,k[0],k[1],0];kf[6]=cks(kf,6);
+  if(!(await talk(kf,CG)&&S.rep.length>3&&S.rep[1]===5&&S.rep[3]===0))throw new Fail(3,"ECU ไม่รับ key");
+  if(S.abort)throw new Fail(4,"ยกเลิก");
+  S.phase="เตรียมลบ";
+  await T(SH.P1,CG);
+  S.dirty=true;
+  S.phase="กำลังลบ";
+  await T(SH.ERASE,CG);await T(SH.P3,CG);
+  if(!(await T(SH.P4,CG)&&S.rep.length>3&&S.rep[3]===0x00))throw new Fail(3,"ลบไม่สำเร็จ (P4) - อัดใหม่");
+  if(!await flWait(2000))throw new Fail(4,"ยกเลิก - ECU เขียนไม่ครบ");
+  if(!(await T(SH.P5,CG)&&S.rep.length>3&&S.rep[3]===0x00)){
+   if(S.rep.length>3&&S.rep[3]===0xFA)throw new Fail(3,"ลบไม่สำเร็จ - ECM ถูกบล็อก");
+   throw new Fail(3,"ลบไม่สำเร็จ (P5) - อัดใหม่")}
+ }
+ S.phase=real?"กำลังเขียน":"จำลองการเขียน";
+ S.total=sz-start;S.done=0;S.wr0=performance.now();
+ const totalBlk=Math.floor(sz/128);let blk=Math.floor(start/128),unit=start/16,dataGap=0;
+ while(blk<totalBlk){
+  if(S.abort)throw new Fail(4,S.dirty?"ยกเลิก - ECU เขียนไม่ครบ":"ยกเลิก");
+  const data=d.subarray(blk*128,blk*128+128);
+  if(real){
+   const nextU=(blk+1===totalBlk)?0:unit+8,fr=buildData(0x7C,0x02,data,128,unit,nextU);
+   let ok=false;
+   for(let t=0;t<3&&!ok;t++){
+    if(await talk(fr,dataGap)){
+     if(S.rep.length===5)ok=true;
+     else if(S.rep.length===7&&S.rep[4]===0&&S.rep[5]===0){}
+     else break}
+    if(!ok){if(S.abort)break;dataGap=CG;await sleep(20)}}
+   if(!ok){if(S.abort)throw new Fail(4,"ยกเลิก - ECU เขียนไม่ครบ");throw new Fail(3,"ไม่ได้ ACK ที่ 0x"+hex(unit*16,6)+" - อัดใหม่")}
+  }else await sleep(4);
+  blk++;unit+=8;S.sent+=128;S.done+=128;
+ }
+ S.wr1=performance.now();
+ if(real){
+  S.phase="จบงาน";
+  await T(SH.F1);if(!await flWait(1000))throw new Fail(4,"ยกเลิก");
+  await T(SH.F2);if(!await flWait(1000))throw new Fail(4,"ยกเลิก");
+  await T(SH.F3);if(!await flWait(1000))throw new Fail(4,"ยกเลิก");
+  await T(SH.F4);if(!await flWait(3000))throw new Fail(4,"ยกเลิก");
+  if(!(await T(SH.F5)&&S.rep.length>3&&S.rep[3]===0x0F))throw new Fail(3,"จบงาน: ผลไม่ใช่ 0F (ข้อมูลถูกเขียนแล้ว)");
+  return"อัดสำเร็จ - ปิด/เปิดสวิตช์กุญแจ 1 ครั้ง"}
+ return"SIM เสร็จ - ไม่ได้ส่งอะไรเข้า ECU (SH type "+inf.type+")"}
+
+/* ---------------- ตรวจไฟล์ก่อนอัด ---------------- */
+function preflight(bin){
+ const sz=bin.length,e7=sz>=7?Array.from(bin.slice(sz-7)):null,r={items:[],verdict:"ok",family:"KH"};
+ const add=(lv,t)=>{r.items.push({lv,t});if(lv==="bad")r.verdict="bad";else if(lv==="warn"&&r.verdict==="ok")r.verdict="warn"};
+ const is5A=!!e7&&e7[3]===0x5A&&e7[4]===0x5A&&e7[5]===0x5A&&e7[6]===0x5A;
+ if(SH_SIZE_OK(sz)&&(is5A||sz!==262144)){
+  r.family="SH";
+  const d=bin.slice(),inf=shDetect(d);
+  if(inf.err)add("bad",inf.err);else add("ok","ไฟล์ Shindengen type "+inf.type+" เริ่มเขียนที่ 0x"+inf.start.toString(16).toUpperCase());
+  if(!inf.err){
+   const ck=shAutoChecksum(d);
+   add(ck>=0?"ok":"warn",ck>=0?"จะปรับเช็กซัมของไฟล์ที่ตำแหน่ง 0x"+ck.toString(16).toUpperCase():"ไม่พบจุดเช็กซัม จะอัดไฟล์ตามที่เป็น");
+   add(shKey(d,0x12,0x34)?"ok":"bad",shKey(d,0x12,0x34)?"พบข้อมูล key ในไฟล์":"ไม่พบข้อมูล key ในไฟล์")}
+ }else{
+  const g=geometry(sz,e7,null);
+  if(g.err)add("bad",g.err);
+  else add("ok","ไฟล์ Keihin เริ่มเขียนที่ 0x"+g.g.base.toString(16).toUpperCase()+" บล็อก "+(g.g.ktype===1?64:128)+" ไบต์"+(g.g.chk>=0?" · เช็กซัมที่ 0x"+g.g.chk.toString(16).toUpperCase():""));
+ }
+ return r}
+
+/* ---------------- UI ---------------- */
+function chip(t,c){return'<span class="chip '+c+'">'+t+"</span>"}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";")}
+function canReal(){
+ if(!S.usb||!S.ecuOk||!S.bin||!S.pf||S.pf.verdict==="bad")return false;
+ if(!$("#o-cBat").checked)return false;
+ if(S.pf.verdict==="warn"&&!$("#o-cAck").checked)return false;
+ return true}
+function render(){
+ const real=S.mode==="real";
+ $("#o-bEcu").disabled=!S.usb||S.running;$("#o-bLoop").disabled=!S.usb||S.running;$("#o-bUsb").disabled=S.running;
+ let h=chip(S.usb?"USB: "+esc(S.ftdi&&S.ftdi.name||"FTDI"):"USB: ยังไม่ต่อ",S.usb?"ok":"");
+ h+=chip(S.ecuOk?"ECU: ตอบ":"ECU: ยังไม่ต่อ",S.ecuOk?"ok":"");
+ $("#o-chips").innerHTML=h;
+ if(S.bin){
+  $("#o-finfo").textContent=S.name+" · "+S.bin.length+" ไบต์ · CRC32 "+hex(crc32(S.bin),8);
+  $("#o-items").innerHTML=S.pf.items.map(i=>'<li class="l-'+i.lv+'">'+esc(i.t)+"</li>").join("");
+ }
+ $("#o-realbox").hidden=!real;
+ $("#o-rowAck").hidden=!(real&&S.pf&&S.pf.verdict==="warn");
+ $("#o-bGo").textContent=real?"เริ่มอัดจริง":"เริ่ม SIM";
+ $("#o-bGo").className="btn "+(real?"red":"pri");
+ $("#o-bGo").disabled=S.running||!S.bin||!S.pf||S.pf.verdict==="bad"||(real&&!canReal());
+ $("#o-bStop").hidden=!S.running}
+function tick(){
+ if(!S.running&&!S.t0)return;
+ $("#o-ph").textContent=S.phase||"-";
+ const pc=S.total?Math.min(100,S.done*100/S.total):0;
+ $("#o-barI").style.width=pc.toFixed(1)+"%";
+ const el=((S.running?performance.now():S.t1)-S.t0)/1000;
+ let bps=0;if(S.wr0){const e=(S.wr1||performance.now())-S.wr0;if(e>0)bps=S.sent*1000/e}
+ $("#o-pnum").textContent=pc.toFixed(1)+"%  ·  "+S.done+" / "+S.total+" ไบต์  ·  ใช้เวลา "+Math.floor(el/60)+":"+String(Math.floor(el%60)).padStart(2,"0")+(bps?"  ·  "+Math.round(bps)+" B/s":"")}
+async function lock(on){try{if(on&&navigator.wakeLock)S.wl=await navigator.wakeLock.request("screen");else if(S.wl){await S.wl.release();S.wl=null}}catch(e){}}
+
+async function startFlash(){
+ if(S.running||!S.bin||!S.pf)return;
+ const real=S.mode==="real";
+ if(real&&!canReal())return;
+ if(real&&!confirm("อัดจริงลง ECU ตอนนี้? ถ้าหยุดกลางทางกล่องอาจใช้ไม่ได้จนกว่าจะอัดใหม่"))return;
+ S.running=true;S.abort=false;S.busy=true;S.dirty=false;S.done=0;S.total=0;S.sent=0;S.wr0=0;S.wr1=0;S.t0=performance.now();S.t1=0;S.phase="เริ่ม";
+ $("#o-prog").hidden=false;$("#o-res").textContent="";$("#o-res").className="";
+ await lock(true);render();
+ log("=== "+(real?"อัดจริง":"SIM")+" "+S.name+" ===");
+ let st=3,msg="";
+ try{
+  msg=S.pf.family==="SH"?await shRun(S.bin,real):await keihinRun(S.bin,real);st=2;
+ }catch(e){st=e instanceof Fail?e.st:3;msg=e instanceof Fail?e.message:"ผิดพลาด: "+(e&&e.message||e)}
+ S.t1=performance.now();S.running=false;S.busy=false;S.phase="";
+ if(real&&S.dirty){S.ecuOk=false}
+ await lock(false);
+ $("#o-res").textContent=(st===2?"สำเร็จ: ":st===4?"ยกเลิก: ":"ผิดพลาด: ")+msg;
+ $("#o-res").className=st===2?"res-ok":"res-bad";
+ log(msg);
+ tick();render()}
+
+async function connectEcu(){
+ if(S.busy||!S.usb)return;
+ S.busy=true;$("#o-ecuinfo").textContent="กำลังต่อ ECU...";
+ try{
+  const w=await wakeSeq();
+  log("WAKE "+(w.wake?"ตอบ":"ไม่ตอบ")+"  INIT "+(w.init?"ตอบ":"ไม่ตอบ"));
+  const t=await pingEcu();
+  S.ecuOk=t||w.wake||w.init;S.fails=0;
+  $("#o-ecuinfo").textContent=t?"ECU ตอบ (อ่านตารางได้)":(S.ecuOk?"ECU ตอบสัญญาณปลุก แต่อ่านตารางไม่ได้":"ECU ไม่ตอบ ตรวจสาย/สวิตช์กุญแจ/ติ๊ก echo");
+ }catch(e){$("#o-ecuinfo").textContent="ต่อ ECU ไม่สำเร็จ: "+(e&&e.message||e)}
+ S.busy=false;
+ render()}
+
+async function keepAlive(){
+ for(;;){
+  await sleep(700);
+  if(!S.ecuOk||S.busy||S.running||!S.usb)continue;
+  S.busy=true;
+  try{if(await pingEcu()){S.fails=0}else if(++S.fails>=5){S.ecuOk=false;$("#o-ecuinfo").textContent="ECU เงียบไป (session หมดเวลา) กด ต่อ ECU ใหม่";render()}}catch(e){}
+  S.busy=false}}
+
+$("#o-bUsb").addEventListener("click",async()=>{
+ try{
+  if(S.ftdi)await S.ftdi.close();
+  S.rx.length=0;
+  S.ftdi=new Ftdi(b=>{for(let i=0;i<b.length;i++)S.rx.push(b[i]);if(S.rx.length>4096)S.rx.splice(0,S.rx.length-4096)});
+  await S.ftdi.open();S.usb=true;S.ecuOk=false;
+  log("เชื่อมต่อ "+S.ftdi.name+" (bcdDevice 0x"+hex(S.ftdi.bcd,4)+") 10400 baud 8N1");
+ }catch(e){S.usb=false;log("เชื่อมต่อ USB ไม่สำเร็จ: "+(e&&e.name?e.name+" - ":"")+(e&&e.message||e))}
+ render()});
+$("#o-bEcu").addEventListener("click",connectEcu);
+$("#o-cEcho").addEventListener("change",e=>{S.echo=e.target.checked});
+$("#o-bLoop").addEventListener("click",async()=>{
+ if(S.busy||!S.usb)return;S.busy=true;
+ const r=await sniff([0x55,0xAA,0x55],100);
+ const ok=r.length>=3&&r[0]===0x55&&r[1]===0xAA&&r[2]===0x55;
+ log("LOOP TEST rx: "+(r.map(x=>hex(x)).join(" ")||"(ไม่มี)")+(ok?"  -> มี echo":"  -> ไม่มี echo"));
+ $("#o-ecuinfo").textContent=ok?"ได้ยิน echo 55 AA 55 ถูกต้อง (ตรงกับที่ติ๊กไว้)":"ไม่ได้ยิน echo: ถ้าต่อ ECU แล้วค่อยลอง หรือเอาติ๊ก echo ออก";
+ S.busy=false});
+$("#o-fIn").addEventListener("change",function(){
+ const f=this.files&&this.files[0];this.value="";if(!f)return;
+ if(f.size<4||f.size>16*1048576){log("ขนาดไฟล์ไม่เหมาะสม");return}
+ const fr=new FileReader();
+ fr.onload=()=>{S.bin=new Uint8Array(fr.result);S.name=f.name;S.pf=preflight(S.bin);log("เปิดไฟล์ "+f.name+" ("+S.bin.length+" ไบต์)");render()};
+ fr.readAsArrayBuffer(f)});
+document.querySelectorAll("#o-mode .btn").forEach(b=>b.addEventListener("click",()=>{
+ S.mode=b.dataset.m;document.querySelectorAll("#o-mode .btn").forEach(x=>x.classList.toggle("act",x===b));render()}));
+$("#o-cBat").addEventListener("change",render);$("#o-cAck").addEventListener("change",render);
+$("#o-bGo").addEventListener("click",startFlash);
+$("#o-bStop").addEventListener("click",()=>{S.abort=true;log("สั่งหยุด...")});
+window.addEventListener("beforeunload",e=>{if(S.running){e.preventDefault();e.returnValue=""}});
+if("usb"in navigator){navigator.usb.addEventListener("disconnect",()=>onUsbLost())}
+else{
+ $("#o-nousb").textContent=location.hostname==="192.168.4.1"||/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)?"หน้านี้เปิดจากเกจ (http) Chrome ไม่ให้ใช้ WebUSB ให้ไปเปิดจากลิงก์ GitHub Pages (https) ของเว็บนี้แทน":"เบราว์เซอร์นี้ใช้ WebUSB ไม่ได้ ต้องใช้ Chrome บน Android และเปิดผ่าน https";
+ $("#o-nousb").hidden=false;$("#o-bUsb").disabled=true}
+setInterval(tick,250);keepAlive();render();
+
 })();
 </script>
 </body>
