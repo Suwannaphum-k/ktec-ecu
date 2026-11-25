@@ -125,6 +125,11 @@ input.sm{width:92px}
 .oph{font-family:var(--f-num);font-size:20px}
 #o-log{width:100%;height:170px;background:#111214;border:1px solid var(--line);color:#b9bdb2;font-family:var(--f-num);font-size:12px;padding:8px;resize:vertical;white-space:pre;overflow:auto;margin-top:12px}
 #o-res{font-weight:700;margin-top:6px}.res-ok{color:#8fd193}.res-bad{color:#f08a7c}
+#lvRaw{font-family:var(--f-num);font-size:12px;line-height:1.6;color:var(--dim);white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);padding:8px;margin:8px 0;max-height:220px;overflow:auto}
+.lm{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:5px 0;border-bottom:1px solid var(--off);font-size:13px}.lm b{flex:1 0 100%;font-weight:600}
+.lm input{width:62px;min-height:34px;font-size:13px;padding:0 6px}
+#tlive{position:sticky;top:0;z-index:4;background:#101113;border:1px solid var(--line);padding:6px 8px;margin:0 0 8px;font-family:var(--f-num);font-size:13px;color:var(--dim)}
+#tlive.on{color:var(--hi)}
 @media(prefers-reduced-motion:reduce){td.live::after{animation:none}}
 </style>
 </head>
@@ -142,7 +147,14 @@ input.sm{width:92px}
 
 <main>
 <section id="tab-live">
-<p class="warn" id="offgauge" hidden>หน้านี้ต้องเปิดจากตัวเกจ: ต่อ WiFi ของเกจ แล้วเปิด http://192.168.4.1/ecu</p>
+<div class="blk" id="otgLive" style="padding-top:4px">
+<div class="row"><button class="btn pri" id="lvConn" type="button">ต่อสาย OTG + ECU</button><button class="btn" id="lvStop" type="button" hidden>หยุดอ่านค่าสด</button></div>
+<div class="onum" id="lvInfo" style="margin-top:6px">กดครั้งเดียว: เลือกสาย FTDI → ต่อ ECU → อ่านค่าสดต่อเนื่อง (ไม่ต้องผ่านเกจ)</div>
+<details id="lvDet" style="margin-top:8px"><summary class="k" style="cursor:pointer;min-height:32px">ตั้งค่าช่องข้อมูล / ดูไบต์ดิบจาก ECU</summary>
+<p class="sub" style="margin-top:8px">ค่าสดแต่ละช่องอ่านจากไบต์ในตารางข้อมูลของ ECU ใส่ ตาราง (hex) ตำแหน่งไบต์ จำนวนไบต์ แล้วสูตร ค่า = ดิบ × คูณ + บวก ช่องที่ยังไม่ตั้งจะแสดง – (ไม่เดาค่า) ตัวช่วยหาตำแหน่ง: กด จดค่าฐาน ตอนเดินเบา แล้วเร่งเครื่อง ไบต์ที่มี * คือไบต์ที่เปลี่ยน</p>
+<div class="row"><button class="btn" id="lvBase" type="button">จดค่าฐาน</button><button class="btn" id="lvCopy" type="button">คัดลอกค่าตั้ง</button><button class="btn" id="lvPaste" type="button">วางค่าตั้ง</button></div>
+<pre id="lvRaw">ยังไม่ได้ข้อมูล</pre><div id="lvMap"></div></details>
+</div>
 <div class="spdrow"><div><div class="k">ความเร็ว</div><div><span class="big" id="v-spd">–</span><span class="u">km/h</span></div></div>
 <div style="text-align:right"><div class="k">ความเร็วสูงสุด</div><div class="rd" style="font-family:var(--f-num);font-size:20px"><span id="v-max">–</span><span class="u">km/h</span></div></div></div>
 <div class="chan"><div class="head"><span class="k">รอบเครื่อง</span><span class="rd"><span id="v-rpm">–</span><i>rpm</i></span></div>
@@ -194,8 +206,10 @@ input.sm{width:92px}
 <div class="blk" id="t-ed" hidden>
 <h2>3. แก้ค่า: <span id="t-title"></span></h2>
 <p class="sub" id="t-desc"></p>
+<div id="tlive">ต่อ OTG ที่แท็บค่าสด เพื่อดูว่า ECU อยู่ช่องไหนของตารางนี้ (กรอบกะพริบ)</div>
 <p class="warn" id="tro" hidden>ตารางนี้ดูอย่างเดียว เพราะสมการหรือชนิดข้อมูลในไฟล์ XDF หน้านี้ยังไม่รองรับ (ค่าที่เห็นเป็นค่าดิบ)</p>
 <div class="tools">
+<button class="btn pri" id="tAtLive" type="button">ช่องที่ ECU อยู่</button>
 <button class="btn" id="tExt" type="button">ช่วง</button>
 <button class="btn" id="tAll" type="button">ทั้งตาราง</button>
 <button class="btn" id="tUndo" type="button" disabled>ย้อนกลับ</button>
@@ -206,7 +220,8 @@ input.sm{width:92px}
 <div class="legend"><span>น้อย</span><i></i><span>มาก</span><span style="margin-left:auto">มุมขาว = แก้แล้ว <b id="tUnit"></b></span></div>
 <div class="k" id="taxinfo" style="margin-top:6px"></div>
 <div class="msg" id="tinfo"></div>
-<div class="tools" style="margin-top:8px">
+<div class="tools" id="tQuick" style="margin-top:8px"><span class="k">ปรับด่วนที่เลือก</span><button class="btn" type="button" data-p="-5">−5%</button><button class="btn" type="button" data-p="-2">−2%</button><button class="btn" type="button" data-p="-1">−1%</button><button class="btn" type="button" data-p="1">+1%</button><button class="btn" type="button" data-p="2">+2%</button><button class="btn" type="button" data-p="5">+5%</button></div>
+<div class="tools">
 <input type="text" id="tv" class="sm" inputmode="decimal" placeholder="ค่า" aria-label="ค่าที่จะตั้ง">
 <button class="btn pri" id="tSet" type="button">ตั้งค่า</button>
 <button class="btn" id="tSm" type="button">ปรับให้เรียบ</button>
@@ -217,7 +232,7 @@ input.sm{width:92px}
 <button class="btn" id="tMinus" type="button">−</button>
 <button class="btn" id="tPlus" type="button">+</button>
 </div>
-<p class="note">แตะช่องเพื่อเลือก แตะชื่อแถวหรือคอลัมน์เพื่อเลือกทั้งแถว/คอลัมน์ กด "ช่วง" แล้วแตะอีกช่องเพื่อเลือกเป็นช่วง (เมาส์ลากเลือกได้) ถ้าค่าในตารางสลับแกนไม่ตรงกับ TunerPro ให้กด "สลับแถว/คอลัมน์"</p>
+<p class="note">ขั้นตอนง่าย ๆ: กด ช่องที่ ECU อยู่ (หรือแตะช่อง/แถว/คอลัมน์) แล้วกดปรับด่วน % ถ้าผิดกด ย้อนกลับ ส่วนที่เหลือ: แตะช่องเพื่อเลือก แตะชื่อแถวหรือคอลัมน์เพื่อเลือกทั้งแถว/คอลัมน์ กด "ช่วง" แล้วแตะอีกช่องเพื่อเลือกเป็นช่วง (เมาส์ลากเลือกได้) ถ้าค่าในตารางสลับแกนไม่ตรงกับ TunerPro ให้กด "สลับแถว/คอลัมน์"</p>
 </div>
 <div class="blk" style="border-bottom:0">
 <h2>4. บันทึก / ส่งเข้าเกจ</h2>
@@ -348,7 +363,6 @@ function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
 function msg(id,t){$(id).textContent=t}
 var onGauge=/^https?:$/.test(location.protocol)&&!!location.hostname;
 $("#stHost").textContent=onGauge?location.hostname:"ไม่ได้เปิดจากเกจ";
-if(!onGauge)$("#offgauge").hidden=false;
 
 /* ---------- tabs ---------- */
 var TABS=["live","map","tune","files","otg","link"],cur="live";
@@ -401,7 +415,7 @@ put("#v-tps",tps,1);bTps.set(tps||0);put("#v-tpsv",tv,3);
 put("#v-map",map);bMap.set(map||0);
 put("#v-spd",spd);put("#v-pw",inj,2);put("#v-ign",ign,1);put("#v-afr",afr,1);
 put("#v-tmp",wt);put("#v-iat",iat);put("#v-vol",bat,1);
-setLink(f.l,f.sc);
+setLink(f.l,f.sc);try{tLiveMark(f)}catch(x){}
 if(f.lr!==undefined)markLive(f.lr,f.lc);
 if(cur==="files")updateChecks()}
 function applyFull(d){
@@ -425,9 +439,12 @@ fetch("/s",{cache:"no-store"}).then(function(r){return r.json()}).then(function(
 .catch(function(){pollFails++}).then(function(){polling=false})}
 if(onGauge){startSse();
 setInterval(function(){var now=Date.now();
-if(now-lastSse>1500)pollS();
+if(now-lastSse>1500&&!window.ktecLiveOn)pollS();
 setUp(lastData>0&&now-lastData<3000)},700)}
 
+var mxS=0;
+window.ktecLive={apply:function(f){applyFast(f);setUp(true);$("#stHost").textContent="OTG";var s=val(f,5);if(s!=null&&s>mxS){mxS=s;put("#v-max",s)}},
+clear:function(){clearLive();setUp(false);tLiveClear();$("#stTxt").textContent="OTG หยุดอ่าน";$("#stHost").textContent=onGauge?location.hostname:"ไม่ได้เปิดจากเกจ"}};
 /* ---------- commands ---------- */
 function cmd(n,extra){return fetch("/c?n="+n+(extra||""),{cache:"no-store"})}
 $("#btnLink").addEventListener("click",function(){cmd("link").then(function(){msg("#linkMsg","ส่งคำสั่งแล้ว")}).catch(function(){msg("#linkMsg","ส่งคำสั่งไม่ได้")})});
@@ -703,7 +720,22 @@ w=$("#t-wrap");w.innerHTML=h+"</tbody></table>";
 T.cells=[].slice.call(w.querySelectorAll("td"));T.rh=[].slice.call(w.querySelectorAll("tbody th"));T.ch=[].slice.call(w.querySelectorAll("thead th")).slice(1);
 $("#tUnit").textContent=z.unit?"· "+z.unit:"";
 $("#taxinfo").textContent="แกนคอลัมน์: "+tAxSrc(t.x)+" · แกนแถว: "+tAxSrc(t.y);
-tPaint()}
+tLaxSet(t,xs,ys);tPaint()}
+function tKind(a,L){var q=(((a&&a.unit)||"")+" "+(L?L.title:"")).toLowerCase();
+if(/rpm|รอบ/.test(q))return"rpm";if(/tps|throttle|คันเร่ง|%/.test(q))return"tps";if(/map|kpa|แรงดัน/.test(q))return"map";return""}
+function tLaxSet(t,xs,ys){function one(a,v){var k=tKind(a,tLinked(a));if(!k&&Math.max.apply(null,v)>=1500)k="rpm";return k}
+var fx=xs.map(parseFloat),fy=ys.map(parseFloat);T.lax={x:one(t.x,fx),y:one(t.y,fy),xs:fx,ys:fy};T.lcell=null;T.lr=null;T.lc=null}
+function tNear(a,x){var b=-1,d=Infinity,i,e;for(i=0;i<a.length;i++){e=Math.abs(a[i]-x);if(e<d){d=e;b=i}}return b}
+function tLiveClear(){var b=$("#tlive");if(b){b.className="";b.textContent="ต่อ OTG ที่แท็บค่าสด เพื่อดูว่า ECU อยู่ช่องไหนของตารางนี้ (กรอบกะพริบ)"}
+if(T.lcell)T.lcell.classList.remove("live");T.lcell=null;T.lr=null;T.lc=null}
+function tLiveMark(f){var t=T.cur,L=T.lax;if(!t||!L||!T.cells.length||cur!=="tune")return;
+var rpm=val(f,0),tps=val(f,1),mp=val(f,7),afr=val(f,3),b=$("#tlive");
+b.className="on";b.textContent="ECU: "+(rpm==null?"–":Math.round(rpm))+" rpm · TPS "+(tps==null?"–":tps.toFixed(1))+"% · MAP "+(mp==null?"–":Math.round(mp))+" kPa · AFR "+(afr==null?"–":afr.toFixed(1));
+var g={rpm:rpm,tps:tps,map:mp},xv=g[L.x],yv=g[L.y];
+if(L.x===L.y||xv==null||yv==null){if(T.lcell){T.lcell.classList.remove("live");T.lcell=null;T.lr=null}return}
+var c=tNear(L.xs,xv),r=tNear(L.ys,yv),td=(r>=0&&c>=0)?T.cells[r*t.cols+c]:null;
+if(td===T.lcell)return;if(T.lcell)T.lcell.classList.remove("live");
+if(td)td.classList.add("live");T.lcell=td;T.lr=td?r:null;T.lc=td?c:null}
 function tPaint(){var t=T.cur,s=T.sel,r,c;if(!t||!s)return;
 for(r=0;r<t.rows;r++)for(c=0;c<t.cols;c++)T.cells[r*t.cols+c].classList.toggle("sel",r>=s.r0&&r<=s.r1&&c>=s.c0&&c<=s.c1);
 T.rh.forEach(function(th,i){th.classList.toggle("sel",i>=s.r0&&i<=s.r1)});
@@ -843,6 +875,10 @@ T.drag=true;T.anc=T.md;T.sel=tRect(T.md.r,T.md.c,r,c);tPaint();tInfo()});
 document.addEventListener("mouseup",function(){T.md=null;setTimeout(function(){T.drag=false},0)});
 
 /* ปุ่มแก้ค่า */
+$("#tAtLive").addEventListener("click",function(){var t=T.cur;if(!t)return;
+if(T.lr==null){$("#tinfo").textContent="ยังไม่มีค่าสด หรือแกนตารางนี้ไม่ใช่ รอบ/TPS/MAP ที่แยกได้ ต่อ OTG ที่แท็บค่าสดก่อน";return}
+T.anc={r:T.lr,c:T.lc};T.sel=tRect(T.lr,T.lc,T.lr,T.lc);tPaint();tInfo()});
+$("#tQuick").addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("button[data-p]");if(!b)return;var p=+b.dataset.p;tApply(function(v){return v*(1+p/100)})});
 $("#tExt").addEventListener("click",function(){T.ext=!T.ext;this.classList.toggle("act",T.ext)});
 $("#tAll").addEventListener("click",function(){var t=T.cur;if(!t)return;T.anc={r:0,c:0};T.sel=tRect(0,0,t.rows-1,t.cols-1);tPaint();tInfo()});
 $("#tTr").addEventListener("click",function(){if(!T.cur)return;T.cur.rm=!T.cur.rm;tRender();tInfo()});
@@ -1123,8 +1159,9 @@ function idShow(id){
 /* ---------------- สถานะ ---------------- */
 const S={ftdi:null,echo:true,rx:[],rep:[],usb:false,ecuOk:false,busy:false,abort:false,running:false,
  bin:null,name:"",pf:null,mode:"sim",done:0,total:0,sent:0,t0:0,wr0:0,wr1:0,dirty:false,wl:null,fails:0};
+const LV={on:false,pause:false,raw:{},base:null,miss:{},fail:0,map:{}};
 function log(m){const l=$("#o-log");l.value+=m+"\n";l.scrollTop=l.scrollHeight}
-function onUsbLost(){S.usb=false;S.ecuOk=false;log("สาย USB หลุด");if(S.running){S.abort=true}render()}
+function onUsbLost(){S.usb=false;S.ecuOk=false;LV.on=false;window.ktecLiveOn=false;if(window.ktecLive)ktecLive.clear();log("สาย USB หลุด");if(S.running){S.abort=true}render()}
 
 /* ---------------- K-line ชั้นล่าง (ตรงกับ flTalk ของเกจ) ---------------- */
 async function waitTx(n){
@@ -1468,7 +1505,7 @@ async function startFlash(){
  const real=S.mode==="real";
  if(real&&!canReal())return;
  if(real&&!confirm("อัดจริงลง ECU ตอนนี้? ถ้าหยุดกลางทางกล่องอาจใช้ไม่ได้จนกว่าจะอัดใหม่"))return;
- S.running=true;S.abort=false;S.busy=true;S.dirty=false;S.done=0;S.total=0;S.sent=0;S.wr0=0;S.wr1=0;S.t0=performance.now();S.t1=0;S.phase="เริ่ม";
+ S.running=true;LV.pause=true;while(S.busy)await sleep(5);S.abort=false;S.busy=true;S.dirty=false;S.done=0;S.total=0;S.sent=0;S.wr0=0;S.wr1=0;S.t0=performance.now();S.t1=0;S.phase="เริ่ม";
  $("#o-prog").hidden=false;$("#o-res").textContent="";$("#o-res").className="";
  await lock(true);render();
  log("=== "+(real?"อัดจริง":"SIM")+" "+S.name+" ===");
@@ -1476,7 +1513,7 @@ async function startFlash(){
  try{
   msg=S.pf.family==="SH"?await shRun(S.bin,real):await keihinRun(S.bin,real);st=2;
  }catch(e){st=e instanceof Fail?e.st:3;msg=e instanceof Fail?e.message:"ผิดพลาด: "+(e&&e.message||e)}
- S.t1=performance.now();S.running=false;S.busy=false;S.phase="";
+ S.t1=performance.now();S.running=false;S.busy=false;LV.pause=false;S.phase="";
  if(real&&S.dirty){S.ecuOk=false}
  await lock(false);
  $("#o-res").textContent=(st===2?"สำเร็จ: ":st===4?"ยกเลิก: ":"ผิดพลาด: ")+msg;
@@ -1485,17 +1522,19 @@ async function startFlash(){
  tick();render()}
 
 async function connectEcu(){
- if(S.busy||!S.usb)return;
+ if(!S.usb)return;
+ LV.pause=true;while(S.busy)await sleep(10);
  S.busy=true;$("#o-ecuinfo").textContent="กำลังต่อ ECU...";
  try{
   const w=await wakeSeq();
   log("WAKE "+(w.wake?"ตอบ":"ไม่ตอบ")+"  INIT "+(w.init?"ตอบ":"ไม่ตอบ"));
-  const t=await pingEcu();
+  let t=await pingEcu();
+  if(!t){S.echo=!S.echo;$("#o-cEcho").checked=S.echo;t=await pingEcu();if(t)log("สลับค่า echo ให้อัตโนมัติ -> "+(S.echo?"มี echo":"ไม่มี echo"));else{S.echo=!S.echo;$("#o-cEcho").checked=S.echo}}
   S.ecuOk=t||w.wake||w.init;S.fails=0;
   if(S.ecuOk){const id=await readEcmId();if(id){$("#o-idIn").value=id;idShow(id)}else $("#o-idres").textContent="อ่านรหัสกล่องไม่ได้ (ECU ไม่ตอบคำสั่งอ่าน ID)"}
   $("#o-ecuinfo").textContent=t?"ECU ตอบ (อ่านตารางได้)":(S.ecuOk?"ECU ตอบสัญญาณปลุก แต่อ่านตารางไม่ได้":"ECU ไม่ตอบ ตรวจสาย/สวิตช์กุญแจ/ติ๊ก echo");
  }catch(e){$("#o-ecuinfo").textContent="ต่อ ECU ไม่สำเร็จ: "+(e&&e.message||e)}
- S.busy=false;
+ S.busy=false;LV.pause=false;
  render()}
 
 async function keepAlive(){
@@ -1506,7 +1545,7 @@ async function keepAlive(){
   try{if(await pingEcu()){S.fails=0}else if(++S.fails>=5){S.ecuOk=false;$("#o-ecuinfo").textContent="ECU เงียบไป (session หมดเวลา) กด ต่อ ECU ใหม่";render()}}catch(e){}
   S.busy=false}}
 
-$("#o-bUsb").addEventListener("click",async()=>{
+async function connectUsb(){
  try{
   if(S.ftdi)await S.ftdi.close();
   S.rx.length=0;
@@ -1514,7 +1553,8 @@ $("#o-bUsb").addEventListener("click",async()=>{
   await S.ftdi.open();S.usb=true;S.ecuOk=false;
   log("เชื่อมต่อ "+S.ftdi.name+" (bcdDevice 0x"+hex(S.ftdi.bcd,4)+") 10400 baud 8N1");
  }catch(e){S.usb=false;log("เชื่อมต่อ USB ไม่สำเร็จ: "+(e&&e.name?e.name+" - ":"")+(e&&e.message||e))}
- render()});
+ render()}
+$("#o-bUsb").addEventListener("click",connectUsb);
 $("#o-bEcu").addEventListener("click",connectEcu);
 $("#o-bId").addEventListener("click",async()=>{
  if(S.busy||!S.usb||!S.ecuOk)return;
@@ -1547,6 +1587,77 @@ if("usb"in navigator){navigator.usb.addEventListener("disconnect",()=>onUsbLost(
 else{
  $("#o-nousb").textContent=location.hostname==="192.168.4.1"||/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)?"หน้านี้เปิดจากเกจ (http) Chrome ไม่ให้ใช้ WebUSB ให้ไปเปิดจากลิงก์ GitHub Pages (https) ของเว็บนี้แทน":"เบราว์เซอร์นี้ใช้ WebUSB ไม่ได้ ต้องใช้ Chrome บน Android และเปิดผ่าน https";
  $("#o-nousb").hidden=false;$("#o-bUsb").disabled=true}
+
+/* ---------------- ค่าสดผ่าน OTG ---------------- */
+const CH=[["rpm","รอบเครื่อง rpm"],["tps","TPS %"],["ect","น้ำหล่อเย็น °C"],["afr","AFR"],["bat","แบต V"],["spd","ความเร็ว km/h"],["iat","IAT °C"],["map","MAP kPa"],["inj","ระยะฉีด ms"],["ign","องศาไฟ °BTDC"],["tpsv","แรงดัน TPS V"]];
+try{LV.map=JSON.parse(localStorage.getItem("ktec_lmap")||"{}")||{}}catch(e){LV.map={}}
+function lvSave(){try{localStorage.setItem("ktec_lmap",JSON.stringify(LV.map))}catch(e){}}
+function lvBuild(){
+ $("#lvMap").innerHTML=CH.map(c=>{const m=LV.map[c[0]]||{};
+  const f=(k,l,v)=>'<input type="text" data-k="'+c[0]+'" data-f="'+k+'" placeholder="'+l+'" value="'+(v===undefined?"":v)+'" inputmode="decimal" spellcheck="false">';
+  return '<div class="lm"><b>'+c[1]+'</b>'+f("t","ตาราง hex",m.t!==undefined?hex(m.t):"")+f("o","ไบต์ที่",m.o)+f("n","จำนวน",m.n)+f("m","คูณ",m.m)+f("a","บวก",m.a)+'<label class="k"><input type="checkbox" data-k="'+c[0]+'" data-f="be"'+(m.be?" checked":"")+' style="width:18px;min-height:18px"> big-endian</label></div>'}).join("")}
+function lvRead(){
+ const nm={};
+ document.querySelectorAll("#lvMap .lm").forEach(row=>{
+  const g=f=>row.querySelector('[data-f="'+f+'"]'),k=g("t").dataset.k,t=parseInt(g("t").value,16),o=parseInt(g("o").value,10);
+  if(!isFinite(t)||!isFinite(o))return;
+  const n=parseInt(g("n").value,10)||1,m=parseFloat(g("m").value.replace(",","."));
+  const a=parseFloat(g("a").value.replace(",","."));
+  nm[k]={t,o,n:Math.min(4,Math.max(1,n)),m:isFinite(m)?m:1,a:isFinite(a)?a:0,be:g("be").checked}});
+ LV.map=nm;lvSave()}
+$("#lvMap").addEventListener("change",lvRead);
+function lvTables(){const s=new Set([0x11,0x17]);Object.values(LV.map).forEach(m=>s.add(m.t));return[...s]}
+async function readRaw(t){
+ const rq=[0x72,0x05,0x71,t,0];rq[4]=cks(rq,4);
+ S.rx.length=0;await S.ftdi.write(rq);await waitTx(rq.length);
+ const t0=performance.now();
+ while(performance.now()-t0<150){const i=findFrame(S.rx,0x02,t,true);if(i>=0)return S.rx.slice(i+4,i+S.rx[i+1]-1);await sleep(2)}
+ return null}
+function lvDecode(){
+ const v=[],ok=[];
+ CH.forEach((c,i)=>{const m=LV.map[c[0]],d=m&&LV.raw[m.t];let x=null;
+  if(d&&m.o+m.n<=d.length){let r=0;for(let j=0;j<m.n;j++)r=m.be?r*256+d[m.o+j]:r+d[m.o+j]*Math.pow(256,j);x=r*m.m+m.a}
+  v[i]=x==null?0:x;ok[i]=x==null?0:1});
+ return{v,ok,l:1,sc:0}}
+function lvRawTxt(){
+ let s="";
+ Object.keys(LV.raw).forEach(k=>{const d=LV.raw[k],b=LV.base&&LV.base[k];s+="ตาราง "+hex(+k)+" ("+d.length+" ไบต์)\n";let ln="";
+  for(let i=0;i<d.length;i++){ln+=((b&&b[i]!==undefined&&b[i]!==d[i])?"*":" ")+i+":"+d[i]+" ";if((i+1)%6===0){s+=ln+"\n";ln=""}}
+  s+=ln+"\n"});
+ return s||"ยังไม่ได้ข้อมูล"}
+function lvStopUi(msg){LV.on=false;window.ktecLiveOn=false;$("#lvStop").hidden=true;if(window.ktecLive)ktecLive.clear();if(msg)$("#lvInfo").textContent=msg}
+async function lvLoop(){
+ LV.on=true;LV.fail=0;window.ktecLiveOn=true;$("#lvStop").hidden=false;let n=0;
+ while(LV.on){
+  if(!S.usb||!S.ecuOk){lvStopUi("หยุดอ่านค่าสด: สายหรือ ECU หลุด กดต่อใหม่");return}
+  if(LV.pause||S.running||S.busy){await sleep(100);continue}
+  S.busy=true;n++;
+  try{
+   let any=false;
+   for(const t of lvTables()){
+    if(LV.pause||!LV.on)break;
+    const used=Object.values(LV.map).some(m=>m.t===t);
+    if(!used&&(LV.miss[t]||0)>=3&&n%15!==0)continue;
+    const d=await readRaw(t);
+    if(d){LV.raw[t]=d;LV.miss[t]=0;any=true}else LV.miss[t]=(LV.miss[t]||0)+1}
+   if(any){LV.fail=0;ktecLive.apply(lvDecode());$("#lvInfo").textContent=Object.keys(LV.map).length?"อ่านค่าสดอยู่":"อ่านจาก ECU ได้แล้ว แต่ยังไม่ได้ตั้งช่องข้อมูล เปิด ตั้งค่าช่องข้อมูล ด้านล่าง"}
+   else if(++LV.fail>=8){S.busy=false;S.ecuOk=false;render();lvStopUi("ECU ไม่ตอบ หยุดอ่านค่าสด กดต่อใหม่");return}
+   if($("#lvDet").open)$("#lvRaw").textContent=lvRawTxt();
+  }catch(e){}
+  S.busy=false;await sleep(30)}}
+$("#lvConn").addEventListener("click",async()=>{
+ const info=$("#lvInfo");
+ if(!("usb"in navigator)){info.textContent="เบราว์เซอร์นี้ใช้ WebUSB ไม่ได้ ต้องใช้ Chrome บน Android และเปิดผ่านลิงก์ https";return}
+ if(LV.on)return;
+ if(!S.usb){info.textContent="เลือกสาย FTDI ในหน้าต่างที่เด้งขึ้น…";await connectUsb();if(!S.usb){info.textContent="ต่อสาย FTDI ไม่สำเร็จ (ดูบันทึกในแท็บ OTG)";return}}
+ if(!S.ecuOk){info.textContent="กำลังต่อ ECU… (เปิดกุญแจ ON)";await connectEcu()}
+ if(!S.ecuOk){info.textContent="ต่อ ECU ไม่ได้ ตรวจสาย/สวิตช์กุญแจ แล้วลองใหม่";return}
+ info.textContent="กำลังอ่านค่าสด…";lvLoop()});
+$("#lvStop").addEventListener("click",()=>lvStopUi("หยุดอ่านค่าสดแล้ว"));
+$("#lvBase").addEventListener("click",()=>{LV.base={};Object.keys(LV.raw).forEach(k=>LV.base[k]=LV.raw[k].slice());$("#lvInfo").textContent="จดค่าฐานแล้ว เร่งเครื่องแล้วดูไบต์ที่มี *"});
+$("#lvCopy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(JSON.stringify(LV.map));$("#lvInfo").textContent="คัดลอกค่าตั้งแล้ว"}catch(e){prompt("คัดลอกข้อความนี้",JSON.stringify(LV.map))}});
+$("#lvPaste").addEventListener("click",()=>{const t=prompt("วางค่าตั้งที่คัดลอกไว้");if(!t)return;try{const o=JSON.parse(t);if(!o||typeof o!=="object")throw 0;LV.map=o;lvSave();lvBuild();$("#lvInfo").textContent="ใช้ค่าตั้งใหม่แล้ว"}catch(e){$("#lvInfo").textContent="ข้อความค่าตั้งไม่ถูกต้อง"}});
+lvBuild();
 window.ktecOtg={load:function(bin,name){S.bin=bin;S.name=name;S.pf=preflight(bin);log("รับไฟล์จากแท็บจูน: "+name+" ("+bin.length+" ไบต์)");render()}};
 setInterval(tick,250);keepAlive();render();
 
