@@ -283,6 +283,10 @@ input.sm{width:92px}
 <div class="row"><button class="btn" id="o-bLoop" type="button" disabled>ทดสอบ echo (55 AA 55)</button></div>
 <div class="chips" id="o-chips"></div>
 <div class="onum" id="o-ecuinfo"></div>
+<div class="row" style="margin-top:10px"><button class="btn" id="o-bId" type="button" disabled>อ่านรหัสกล่อง</button>
+<input type="text" id="o-idIn" placeholder="หรือพิมพ์ ID เช่น 0103D00D01" style="flex:1;min-width:150px;width:auto" spellcheck="false" autocomplete="off">
+<button class="btn" id="o-bIdQ" type="button">ค้นหา</button></div>
+<div class="onum" id="o-idres" style="margin-top:8px;line-height:1.6"></div>
 </div>
 
 <div class="blk">
@@ -943,6 +947,137 @@ class Ftdi{
  async close(){this.run=false;try{await this.dev.close()}catch(e){}}
 }
 
+/* ---------------- ตารางรหัสกล่อง (ID ECU -> เบอร์กล่อง / รุ่นรถ) ---------------- */
+const ECU_TBL=`30400-K0WF-T01|01037C0D01|ADV150 ปี 2020-2021
+30400-K0WM-TA1|01048E0D01|ADV160 ปี 2023
+30400-K1ZF-T01|0103D00D01|PCX160 ปี 2021-2023
+30400-K1ZF-T11|0103CF0D01|PCX160 ปี 2021-2023
+30400-K1ZF-T61|0903CF0D01|PCX160 Hybrid ปี 2021-2023
+30400-K1ZP-T51|0105050D01|PCX160 ปี 2023
+30400-K1ZP-T71|0105040D01|PCX160 ปี 2023
+30400-K1ZT-TC1|0105B30D01|PCX160 ปี 2025
+30400-K1ZT-TF1|0105B40D01|PCX160 ปี 2025
+30400-K20J-T21|0101FF0D01|ZOOMER-X ปี 2016-2019
+30400-K2F-T01|0104090D01|SCOOPY ปี 2021-2023
+30400-K2F-T21|0104080D01|SCOOPY ปี 2021-2023
+30400-K2F-T81|0104F30D01|SCOOPY ปี 2024
+30400-K2F-T91|0104F20D01|SCOOPY ปี 2024
+30400-K2F-TB1|0104F50D01|SCOOPY ปี 2024
+30400-K2F-TD1|0105AB0D02|SCOOPY ปี 2025
+30400-K2F-TF1|0105AA0D02|SCOOPY ปี 2025
+30400-K2SF-T01|01046D0D01|CLICK160 ปี 2022
+30400-K2TA-T02|0104780D01|LEAD125 ปี 2022
+30400-K2TG-T21|0105950D01|LEAD125 ปี 2025
+30400-K2VH-T01|0101D60D02|CLICK125i ปี 2021
+30400-K36F-T01|0101990D01|PCX150 ปี 2014-2017
+30400-K36S-T31|0102180D01|PCX150 ปี 2014-2017
+30400-K3MF-T01|01052A0D01|GIORNO ปี 2024-2025
+30400-K50A-T02|0101D60D01|MOOVE ปี 2015
+30400-K59-T11|0103070D01|CLICK150i ปี 2019-2021
+30400-K60F-T01|0101D11D01|CLICK125i ปี 2015-2019
+30400-K60S-T71|01030A0D01|CLICK125i ปี 2015-2021
+30400-K60-T71|01030A0D01|CLICK125 ปี 2023
+30400-K93-T01|0102800D01|SCOOPY i ปี 2017-2019
+30400-K93-T21|0102800D01|SCOOPY i ปี 2017-2019
+30400-K97F-T01|0102990D01|PCX150 ปี 2018-2019
+32160-K76-T61|0101880D01|SUPER CUB ปี 2021
+38770-K03-H01|0101880D01|WAVE 110i ปี 2013
+38770-K03-T61|0101610D01|WAVE 110i ปี 2013
+38770-K04-901|0101290D01|FORZA 300 ปี 2013
+38770-K0A-T11|0102B70D02|CB300R ปี 2018-2023
+38770-K0B-T01|0102E50D01|FORZA 300 ปี 2018-2020
+38770-K0F-D71|01041F010100|MONKEY ปี 2025
+38770-K0F-T01|0102CA0D01|MONKEY ปี 2018
+38770-K0F-T61|01041F0D01|MONKEY ปี 2025
+38770-K0F-TE1|0105660D01|MONKEY ปี 2025
+38770-K0G-902|01030E0D01|C125 ปี 2019
+38770-K0G-T22|0104220D01|C125 ปี 2021-2024
+38770-K16-901|0101180D01|SCOOPY i ปี 2013
+38770-K16-B01|0101850D01|SCOOPY i ปี 2013
+38770-K16-B61|0101C60D01|
+38770-K1B-T01|0103BC0D0100|FORZA350 ปี 2020-2022
+38770-K1B-T02|0103BC0D0200|FORZA350 ปี 2020-2022
+38770-K1B-T21|0104B50D0100|FORZA350 ปี 2023-2025
+38770-K1B-T61|01058F0D0100|FORZA350 ปี 2025
+38770-K1M-T01|0103FA0D01|SUPER CUB ปี 2022
+38770-K1M-T31|0105260D01|SUPER CUB ปี 2024
+38770-K1T-T01|0104070D01|CRF300L ปี 2021
+38770-K1T-TA1|0104C60D01|CRF300L ปี 2023
+38770-K1T-TM2|0105D20D01|CRF300L ปี 2025
+38770-K20-901|0101270D01|ZOOMER-X ปี 2012
+38770-K20-T01|0101C60D01|ZOOMER-X ปี 2014
+38770-K26-901|0101350D01|MSX125 ปี 2012-2015
+38770-K26-B02|0102130D01|MSX125 ปี 2017-2020
+38770-K26-G01|0103EB0D01|MSX GROM ปี 2021-2023
+38770-K2E-T01|0103F90D01|CT125 ปี 2020 ตลับเกมส์
+38770-K2E-T02|0103F90D01|CT125 ปี 2020 ตลับเกมส์
+38770-K2E-T11|01047E0D01|CT125 ปี 2023-2025 ตลับเกมส์
+38770-K2J-T01|01040F0D01|WAVE 110i ปี 2021-2024
+38770-K2J-TH1|0105550D01|WAVE 110i ปี 2024
+38770-K2L-T01|0104350D0100|ADV350 ปี 2022
+38770-K2L-T21|0105070D0100|ADV350 ปี 2023
+38770-K2L-T62|0105EE0D0100|ADV350 ปี 2025
+38770-K2W-T01|0104540D01|DAX125 ปี 2023-2025 ตลับเกมส์
+38770-K33-951|01019E0D01|CB300FA ปี 2014-2016
+38770-K33-T53|0101740D01|CB300R ปี 2014
+38770-K3F-T01|01047B0D01|WAVE 125i ปี 2023-2024
+38770-K3S-TA2|01047B0D01|CL300 ปี 2023
+38770-K40-901|0101290D01|FORZA300 ปี 2013
+38770-K45-TA1|0103250D01|CBR150R ปี 2019-2020
+38770-K58-T81|0102B90D01|WAVE 110i ปี 2018
+38770-K58-TC0|0102B90D01|WAVE 110i ปี 2018
+38770-K58-TC1|01034C0D01|WAVE 110i ปี 2019-2020
+38770-K73-T32|0102580D01|WAVE 125i ปี 2016-2019
+38770-K73-T61|01033E0D01|WAVE 125i ปี 2016-2020
+38770-K73-T62|01034F0D01|WAVE 125i ปี 2016-2020
+38770-K76-T62|0102B50D01|SUPER CUB ปี 2018-2019
+38770-K87-T52|01025A0D01|REBEL 300 ปี 2017-2023
+38770-K87-T81|0103780D01|REBEL 300 ปี 2020-2023
+38770-K94-T02|0102A00D01|CB150R ปี 2018-2021
+38770-KPP-602|0144020D01|CBR150R REPSOL ปี 2014-2017
+38770-KVB-S53|0100DF0D02|
+38770-KVG-A31|01009A0D01|AIR BLADEi ปี 2008-2009
+38770-KWW-601|0100B20D01|WAVE 110i ปี 2009
+38770-KWW-642|0100CE0D01|
+38770-KWW-643|0100CE0D02|WAVE 110i ปี 2011-2013
+38770-KYJ-901|0100B80D01|CBR250R ปี 2011-2013
+38770-KYL-T01|0100DB0D01|
+38770-KYT-901|0100890D01|SCOOPY i ปี 2010
+38770-KYZ-T03|01010E0D01|WAVE 125i ปี 2012-2014
+38770-KYZ-T41|0101B30D01|WAVE 125i ปี 2016-2019
+38770-KZV-A61|0101BA0D01|SUPER CUB ปี 2014-2017
+38770-KZV-T03|01010E0D01|SUPER CUB ปี 2013-2014
+38770-KZZ-902|01011A0D01|CRF250 ปี 2012-2013
+38770-KZZ-903|01011A0D01|CRF250L
+38770-KZZ-A22|01015B0D01|CRF250L
+38770-KZZ-J01|0102360D01|CRF250L ปี 2019
+38770-MGZ-T12|0101250D01|CB500X ปี 2014
+38770-MJE-T15|01014E0D03|CBR650R
+38770-MJE-T52|01019C0D02|CBR650R
+38770-MJE-TB1|01027D0D01|CBR650R
+38770-MJW-T01|0102F40D01|CB500X ปี 2018
+38770-MJW-T11|0101DD0D01|CB500R
+38770-MJW-T51|0101DE0D01|CB500X ปี 2016
+38770-MKH-500|0103CA0D01|CBR650R
+38770-MKN-T11|01031A0D01|CBR650R ปี 2019
+38770-MKP-T41|01032F0D0100|CB500X ปี 2019
+38770-MKP-T81|01032F0D0100|CB500X ปี 2019
+38770-MKP-TQ2|0104300D0100|CB500X ปี 2022
+38770-MKY-TE3|0105880D0500|CBR650R E-CLUTCH ปี 2025
+38770-MLR-T81|0105250D01|NX500 ปี 2024`.split("\n").map(l=>{const p=l.split("|");return{part:p[0],id:p[1],model:p[2]||""}});
+function idLookup(q){
+ q=q.toUpperCase().replace(/[^0-9A-F]/g,"");
+ if(q.length<10)return[];
+ const k=q.slice(0,10);
+ return ECU_TBL.filter(r=>r.id.slice(0,10)===k)}
+function idShow(id){
+ const m=idLookup(id),el=$("#o-idres");
+ if(id.replace(/[^0-9A-Fa-f]/g,"").length<10){el.textContent="ID ต้องมีอย่างน้อย 10 ตัว (เลขฐาน 16)";return}
+ const k=id.toUpperCase().replace(/[^0-9A-F]/g,"").slice(0,10);
+ let h='ID กล่อง <b>'+k+'</b><br>';
+ if(!m.length)h+='ไม่พบในตาราง (ไม่มีรหัสนี้ในรายการที่ใส่ไว้)';
+ else h+=m.map(r=>esc(r.part)+" · "+esc(r.model||"(ไม่ระบุรุ่น)")+(r.id.length>10?" <span class=\"k\">["+r.id+"]</span>":"")).join("<br>");
+ el.innerHTML=h}
 /* ---------------- สถานะ ---------------- */
 const S={ftdi:null,echo:true,rx:[],rep:[],usb:false,ecuOk:false,busy:false,abort:false,running:false,
  bin:null,name:"",pf:null,mode:"sim",done:0,total:0,sent:0,t0:0,wr0:0,wr1:0,dirty:false,wl:null,fails:0};
@@ -993,6 +1128,13 @@ async function readTable(t){
  while(performance.now()-t0<150){if(findFrame(S.rx,0x02,t,true)>=0)return true;await sleep(2)}
  return false}
 async function pingEcu(){return(await readTable(0x17))||(await readTable(0x11))}
+async function readEcmId(){
+ const F=[0x72,0x07,0x72,0x00,0x00,0x05,0x10];
+ for(let t=0;t<3;t++){
+  if(await talk(F,0)&&S.rep.length>=10){let s="";for(let i=0;i<5;i++)s+=hex(S.rep[5+i]);log("ตอบกลับ ID: "+S.rep.map(x=>hex(x)).join(" "));return s}
+  if(S.abort)return"";
+  await sleep(50)}
+ return""}
 async function flWait(ms){const t0=performance.now();while(performance.now()-t0<ms){if(S.abort)return false;await sleep(20)}return!S.abort}
 
 /* ---------------- สร้างเฟรมเขียน (ตรงกับ flBuildData / shBuildData) ---------------- */
@@ -1254,6 +1396,7 @@ function canReal(){
  return true}
 function render(){
  const real=S.mode==="real";
+ $("#o-bId").disabled=!S.usb||!S.ecuOk||S.running;
  $("#o-bEcu").disabled=!S.usb||S.running;$("#o-bLoop").disabled=!S.usb||S.running;$("#o-bUsb").disabled=S.running;
  let h=chip(S.usb?"USB: "+esc(S.ftdi&&S.ftdi.name||"FTDI"):"USB: ยังไม่ต่อ",S.usb?"ok":"");
  h+=chip(S.ecuOk?"ECU: ตอบ":"ECU: ยังไม่ต่อ",S.ecuOk?"ok":"");
@@ -1307,6 +1450,7 @@ async function connectEcu(){
   log("WAKE "+(w.wake?"ตอบ":"ไม่ตอบ")+"  INIT "+(w.init?"ตอบ":"ไม่ตอบ"));
   const t=await pingEcu();
   S.ecuOk=t||w.wake||w.init;S.fails=0;
+  if(S.ecuOk){const id=await readEcmId();if(id){$("#o-idIn").value=id;idShow(id)}else $("#o-idres").textContent="อ่านรหัสกล่องไม่ได้ (ECU ไม่ตอบคำสั่งอ่าน ID)"}
   $("#o-ecuinfo").textContent=t?"ECU ตอบ (อ่านตารางได้)":(S.ecuOk?"ECU ตอบสัญญาณปลุก แต่อ่านตารางไม่ได้":"ECU ไม่ตอบ ตรวจสาย/สวิตช์กุญแจ/ติ๊ก echo");
  }catch(e){$("#o-ecuinfo").textContent="ต่อ ECU ไม่สำเร็จ: "+(e&&e.message||e)}
  S.busy=false;
@@ -1330,6 +1474,13 @@ $("#o-bUsb").addEventListener("click",async()=>{
  }catch(e){S.usb=false;log("เชื่อมต่อ USB ไม่สำเร็จ: "+(e&&e.name?e.name+" - ":"")+(e&&e.message||e))}
  render()});
 $("#o-bEcu").addEventListener("click",connectEcu);
+$("#o-bId").addEventListener("click",async()=>{
+ if(S.busy||!S.usb||!S.ecuOk)return;
+ S.busy=true;$("#o-idres").textContent="กำลังอ่านรหัสกล่อง...";
+ try{const id=await readEcmId();if(id){$("#o-idIn").value=id;idShow(id)}else $("#o-idres").textContent="อ่านรหัสกล่องไม่ได้ ลองกด ต่อ ECU ใหม่"}catch(e){$("#o-idres").textContent="อ่านไม่ได้: "+(e&&e.message||e)}
+ S.busy=false});
+$("#o-bIdQ").addEventListener("click",()=>idShow($("#o-idIn").value));
+$("#o-idIn").addEventListener("keydown",e=>{if(e.key==="Enter")idShow($("#o-idIn").value)});
 $("#o-cEcho").addEventListener("change",e=>{S.echo=e.target.checked});
 $("#o-bLoop").addEventListener("click",async()=>{
  if(S.busy||!S.usb)return;S.busy=true;
