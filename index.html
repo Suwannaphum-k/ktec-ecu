@@ -187,6 +187,11 @@ input.sm{width:92px}
 #t-wrap.pro th,#atGrid.pro th{background:#e9e9e9;color:#111;border:1px solid #9a9a9a;font-weight:700}
 #t-wrap.pro th.sel{background:#b9d4f5;color:#000}
 #t-wrap:focus-visible{outline:2px solid var(--hi)}
+#t-wrap{max-height:none}
+#t-wrap.fit{overflow-x:hidden}
+#t-wrap.fit table{width:100%;table-layout:fixed;font-size:var(--fitfs,12px)}
+#t-wrap.fit th,#t-wrap.fit td{min-width:0;padding:0;overflow:hidden;white-space:nowrap;height:var(--fitrh,30px)}
+#t-wrap.fit thead th:first-child{font-size:9px}
 </style>
 </head>
 <body>
@@ -198,16 +203,28 @@ input.sm{width:92px}
 <button role="tab" data-tab="tune" aria-selected="false" type="button">จูน</button>
 <button role="tab" data-tab="auto" aria-selected="false" type="button">จูนออโต้</button>
 <button role="tab" data-tab="otg" aria-selected="false" type="button">OTG / เช็ค ID กล่อง</button>
+<button role="tab" data-tab="can" aria-selected="false" type="button">CAN bus</button>
 </nav>
 
 <main>
 <section id="tab-live">
 <div class="blk" id="otgLive" style="padding-top:4px">
-<div class="row"><button class="btn pri" id="lvConn" type="button">ต่อสาย OTG + ECU</button><button class="btn" id="lvStop" type="button" hidden>หยุดอ่านค่าสด</button></div>
+<div class="row"><select id="lvProf"><option value="auto">รุ่น: ตรวจอัตโนมัติ (PCX / WAVE)</option><option value="t17">WAVE / รุ่นทั่วไป (ตาราง 17 + 20)</option><option value="lead">GIORNO / LEAD (ตาราง 17 + 20)</option><option value="pcx">PCX (ตาราง 11 + 20)</option></select></div>
+<div class="row"><button class="btn pri" id="lvConn" type="button">ต่อสาย OTG + ECU</button><button class="btn" id="lvConnSm2" type="button">ต่อ SM2 + ECU</button><button class="btn" id="lvStop" type="button" hidden>หยุดอ่านค่าสด</button></div>
 <div class="onum" id="lvInfo" style="margin-top:6px">อ่าน ECU โดยตรงผ่าน USB OTG · FTDI · K-Line ไม่ต้องเชื่อมเกจ ESP32</div><p class="warn" style="margin-top:8px">สำคัญ: บอร์ด FTDI USB-TTL ทั่วไปไม่ใช่วงจร K-Line ต้องมีอุปกรณ์แปลงสัญญาณ K-Line สำหรับรถยนต์คั่นกลาง ห้ามต่อขา TTL เข้าสาย K-Line ของรถโดยตรง</p>
+<div class="blk" id="lvCan" style="margin-top:10px;padding-top:4px">
+<div class="k" style="margin-bottom:6px"><b>หรือต่อผ่าน CAN bus (FORZA 350 / รถที่มีพอร์ต OBD-II)</b></div>
+<div class="row"><select id="lvCanProto" aria-label="โปรโตคอล CAN"><option value="0">CAN: อัตโนมัติ (ATSP0 / Tactrix ลองทุกแบบ)</option><option value="6">CAN 11 บิต 500k (6)</option><option value="7">CAN 29 บิต 500k (7)</option><option value="8">CAN 11 บิต 250k (8)</option><option value="9">CAN 29 บิต 250k (9)</option></select></div>
+<div class="row"><button class="btn pri" id="lvCanTact" type="button">ต่อ CAN: Tactrix OpenPort 2.0</button><button class="btn" id="lvCanTactSer" type="button">Tactrix ผ่านพอร์ต COM (สำรอง)</button><button class="btn pri" id="lvCanSm2" type="button">ต่อ CAN: Scanmatik SM2</button><button class="btn pri" id="lvCanUsb" type="button">ต่อ CAN: ELM327 (FTDI)</button><button class="btn" id="lvCanSer" type="button">ต่อ CAN: ELM327 (พอร์ต COM)</button><button class="btn" id="lvCanStop" type="button" hidden>หยุด CAN</button></div>
+<div class="onum" id="lvCanInfo" style="margin-top:6px">ค่าสดจาก CAN (รอบ, TPS, องศาไฟ, MAP) จะเข้าแสดงหน้านี้และจูนออโต้ ใช้ได้ทีละสาย ถ้าต่อ K-Line อยู่ให้กดหยุดก่อน · เลือกค่าที่อ่าน/โหลด .adx ได้ที่แท็บ CAN bus</div>
+</div>
 <details id="lvDet" style="margin-top:8px"><summary class="k" style="cursor:pointer;min-height:32px">ตั้งค่าช่องข้อมูล / ดูไบต์ดิบจาก ECU</summary>
 <p class="sub" style="margin-top:8px">ค่าสดแต่ละช่องอ่านจากไบต์ในตารางข้อมูลของ ECU ใส่ ตาราง (hex) ตำแหน่งไบต์ จำนวนไบต์ แล้วสูตร ค่า = ดิบ × คูณ + บวก ช่องที่ยังไม่ตั้งจะแสดง – (ไม่เดาค่า) ตัวช่วยหาตำแหน่ง: กด จดค่าฐาน ตอนเดินเบา แล้วเร่งเครื่อง ไบต์ที่มี * คือไบต์ที่เปลี่ยน</p>
 <div class="row"><button class="btn" id="lvBase" type="button">จดค่าฐาน</button><button class="btn" id="lvCopy" type="button">คัดลอกค่าตั้ง</button><button class="btn" id="lvPaste" type="button">วางค่าตั้ง</button></div>
+<div class="row"><button class="btn" id="lvScan" type="button">สแกนตารางที่ ECU ตอบ</button></div>
+<p class="sub" style="margin-top:8px">หาตำแหน่งอัตโนมัติ: เลือกช่อง พิมพ์ค่าจริงตอนนี้ (จากหน้าปัดหรือมิเตอร์) แล้วกด เก็บตัวอย่าง ควรเก็บ 2-3 ครั้งตอนค่าต่างกัน (เช่น รอบเดินเบา แล้วรอบสูงขึ้น) ระบบจะเหลือเฉพาะตำแหน่งที่ถูกทุกครั้ง</p>
+<div class="row"><select id="lvFch"></select><input type="text" id="lvFval" inputmode="decimal" placeholder="ค่าจริง" style="width:90px"><button class="btn" id="lvFadd" type="button">เก็บตัวอย่าง</button><button class="btn" id="lvFclr" type="button">ล้างตัวอย่าง</button></div>
+<div id="lvFres" class="sub"></div>
 <pre id="lvRaw">ยังไม่ได้ข้อมูล</pre><div id="lvMap"></div></details>
 </div>
 <div class="spdrow"><div><div class="k">ความเร็ว</div><div><span class="big" id="v-spd">–</span><span class="u">km/h</span></div></div>
@@ -314,6 +331,13 @@ input.sm{width:92px}
 <h2>1. เปิดไฟล์ .bin และ .xdf</h2>
 <p>.bin คือไฟล์ที่อ่านออกมาจาก ECU ส่วน .xdf คือไฟล์บอกตำแหน่งแมพของ TunerPro ไฟล์ถูกอ่านในเครื่องของคุณเท่านั้น แก้ได้โดยไม่ต้องต่อเกจ</p>
 <div class="row"><label class="btn pri" for="tbin">เลือก .bin</label><input type="file" id="tbin" hidden><label class="btn pri" for="txdf">เลือก .xdf</label><input type="file" id="txdf" hidden></div>
+<details id="lib" open style="margin-top:12px"><summary style="cursor:pointer"><b>คลังไฟล์ (เลือกทั้งโฟลเดอร์)</b></summary>
+<p class="k" style="margin:6px 0">เลือกโฟลเดอร์ที่เก็บไฟล์ .bin และ .xdf ไว้ครั้งเดียว (รวมโฟลเดอร์ย่อย) แล้วกดชื่อไฟล์เพื่อเปิดเข้าแท็บจูนได้เลย ไฟล์ถูกอ่านในเครื่องนี้เท่านั้น ไม่มีการอัปโหลด</p>
+<div class="row"><button class="btn pri" id="libPick" type="button">เลือกโฟลเดอร์</button><button class="btn" id="libMem" type="button" hidden></button><button class="btn" id="libRe" type="button" hidden>สแกนใหม่</button><input type="file" id="libFallback" webkitdirectory multiple hidden></div>
+<div class="row" style="margin-top:6px"><input type="text" id="libQ" placeholder="ค้นหาชื่อไฟล์" style="flex:1;min-width:130px;width:auto"></div>
+<div class="k" id="libInfo" style="margin:6px 0">ยังไม่ได้เลือกโฟลเดอร์</div>
+<div id="libList" style="max-height:280px;overflow:auto"></div>
+</details>
 <div class="chips" id="tchips" style="margin-top:10px"></div>
 <div class="row" id="tRestoreRow" hidden style="margin-top:8px"><button class="btn" id="tRestore" type="button"></button></div>
 <div class="msg" id="tm"></div>
@@ -337,6 +361,8 @@ input.sm{width:92px}
 <button class="btn" id="tUndo" type="button" disabled>ย้อนกลับ</button>
 <button class="btn" id="tRev" type="button">คืนค่าเดิมทั้งตาราง</button>
 <button class="btn" id="tTr" type="button">สลับลำดับอ่านข้อมูล</button>
+<button class="btn" id="tCopy" type="button">คัดลอก</button>
+<button class="btn" id="tPaste" type="button">วาง</button>
 </div>
 <div class="tools" id="tableViewTools" style="align-items:center;gap:8px;margin:10px 0">
 <button class="btn act" type="button" id="view2d">2D ตาราง</button><button class="btn" type="button" id="view3d">3D พื้นผิว</button><button class="btn" type="button" id="viewBoth">ตาราง + 3D</button>
@@ -351,6 +377,7 @@ input.sm{width:92px}
 </div>
 <div class="k" id="tfhint"></div>
 <div class="row" id="tcmpRow" hidden style="margin-top:6px"><label class="btn" for="tcmp">เลือกไฟล์เทียบ .bin</label><input type="file" id="tcmp" hidden><button class="btn" id="tcmpClear" type="button">ใช้ค่าเดิม</button><span class="k" id="tcmpName">ไฟล์เทียบ: ค่าเดิมตอนเปิดไฟล์</span></div>
+<label class="ck"><input type="checkbox" id="tfit" checked> พอดีจอ (แสดงทุกคอลัมน์ ไม่ต้องเลื่อนซ้าย-ขวา)</label>
 <label class="ck"><input type="checkbox" id="tcolor" checked> ตารางพื้นม่วง ตัวเลขเขียว (ปิด = สีไล่ตามค่า)</label>
 <div class="tablewrap" id="t-wrap"></div>
 <div class="s3box" id="t-3d-wrap" hidden></div>
@@ -424,14 +451,43 @@ input.sm{width:92px}
 </div>
 </section>
 
+<section id="tab-can" hidden>
+<p class="sub">อ่านค่าสดผ่านสาย CAN bus ด้วยอะแดปเตอร์ ELM327 (USB) หรือ Tactrix OpenPort 2.0 แล้วส่งเข้าแท็บค่าสดและจูนออโต้ตัวเดียวกับ K-line อ่านอย่างเดียว ไม่เขียนอะไรลง ECU</p>
+<div class="blk">
+<h2>1. ต่อสายและเลือกค่าที่จะอ่าน</h2>
+<div class="warn">ใช้ได้ทีละสายเท่านั้น ถ้าต่อ K-line อยู่ให้ตัดการเชื่อมต่อก่อน อะแดปเตอร์ต้องเป็นแบบ USB ที่ใช้ชิป FTDI (VID 0403) ตัวที่ใช้ชิป CH340 หรือบลูทูธเปิดจากหน้านี้ไม่ได้ ส่วน Tactrix OpenPort 2.0 (VID 0403 / PID CC4D) เป็นพอร์ต COM แบบ CDC ให้กดปุ่ม "เชื่อมต่อ Tactrix OpenPort 2.0" (ใช้ Web Serial ใน Chrome บนคอม/Android ที่รองรับ) ไม่ต้องใช้ไดรเวอร์ J2534 ของ Windows</div>
+<div class="row">
+<label class="k" for="can-baud">ความเร็วพอร์ต (เฉพาะ ELM327)</label><select id="can-baud"><option value="38400">38400</option><option value="115200" selected>115200</option><option value="9600">9600</option><option value="500000">500000</option></select>
+<label class="k" for="can-proto">โปรโตคอล</label><select id="can-proto"><option value="0" selected>อัตโนมัติ (ATSP0 / Tactrix ลองทุกแบบ)</option><option value="6">CAN 11 บิต 500k (6)</option><option value="7">CAN 29 บิต 500k (7)</option><option value="8">CAN 11 บิต 250k (8)</option><option value="9">CAN 29 บิต 250k (9)</option></select>
+</div>
+<div class="row">
+<button class="btn pri" id="can-usb" type="button">เชื่อมต่อสาย FTDI</button>
+<button class="btn" id="can-ser" type="button">เชื่อมต่อผ่านพอร์ต COM</button>
+<button class="btn pri" id="can-tact" type="button">เชื่อมต่อ Tactrix OpenPort 2.0</button>
+<button class="btn" id="can-tactser" type="button">Tactrix ผ่านพอร์ต COM (สำรอง)</button>
+<button class="btn pri" id="can-sm2" type="button">เชื่อมต่อ Scanmatik SM2 (CAN)</button>
+<button class="btn" id="can-stop" type="button" hidden>หยุดและตัดการเชื่อมต่อ</button>
+</div>
+<label class="ochk"><input type="checkbox" id="can-fast" checked><span>เร่งความเร็ว: ใส่เลข 1 ท้ายคำสั่ง (010C1) ให้ ELM327 ไม่ต้องรอคำตอบเพิ่ม ถ้าอะแดปเตอร์ตอบ ? ให้เอาติ๊กออก</span></label>
+<div class="row"><label class="btn" for="can-adx" style="cursor:pointer">โหลดนิยามจากไฟล์ .adx</label><input type="file" id="can-adx" accept=".adx,.xml" hidden><span class="sub" id="can-defname">นิยามเริ่มต้น: รอบ, TPS, องศาไฟ, MAP (จากไฟล์ Forza350 ที่ให้มา)</span></div>
+<div style="overflow-x:auto"><table id="can-defs" style="border-collapse:collapse;width:100%;font-size:.9em"></table></div>
+</div>
+<div class="blk">
+<h2>2. สถานะ</h2>
+<pre id="can-log" style="max-height:220px;overflow:auto;white-space:pre-wrap;font-size:.85em"></pre>
+</div>
+</section>
 <section id="tab-otg" hidden>
 <p class="sub">อัดไฟล์ลง ECU ตรงจากมือถือผ่านสาย FTDI (OTG) ไม่ผ่านเกจ ใช้ได้เมื่อเปิดหน้านี้จากลิงก์ https (GitHub Pages) ด้วย Chrome บน Android</p>
 <div class="blk">
 <h2>1. ต่อสายและต่อ ECU</h2>
 <div class="warn" id="o-nousb" hidden></div>
 <p class="warn">บอร์ด FTDI USB-TTL ทั่วไปต้องใช้ตัวแปลงระดับสัญญาณ K-Line สำหรับยานยนต์แยกต่างหาก ห้ามต่อ TTL เข้าสาย K-Line โดยตรง ระบบนี้ใช้สำหรับอ่านและบันทึกข้อมูลเท่านั้น</p>
+<p class="warn">Scanmatik SM2: ลงไดรเวอร์ Scanmatik แล้วดับเบิลคลิก <b>start_sm2.bat</b> (ค้างหน้าต่างดำไว้) หน้านี้จะเปิดขึ้นเอง จากนั้นกดปุ่ม "เชื่อมต่อ Scanmatik SM2" ได้เลย ไม่ต้องใส่รหัส (ใช้ได้เฉพาะ Windows)</p>
 <div class="row">
 <button class="btn pri" id="o-bUsb" type="button">เชื่อมต่อสาย FTDI</button>
+<button class="btn" id="o-bSer" type="button">เชื่อมต่อผ่านพอร์ต COM</button>
+<button class="btn pri" id="o-bSm2" type="button">เชื่อมต่อ Scanmatik SM2</button>
 <button class="btn" id="o-bEcu" type="button" disabled>ต่อ ECU</button>
 </div>
 <label class="ochk"><input type="checkbox" id="o-cEcho" checked><span>สายมีเสียงสะท้อน (echo) คือ RX ได้ยินสิ่งที่ TX ส่ง ตรงกับค่าตั้งของเกจ (ติ๊กไว้ถ้าไม่แน่ใจ ทดสอบด้วยปุ่มข้างล่าง)</span></label>
@@ -462,19 +518,20 @@ input.sm{width:92px}
 
 <div class="blk">
 <h2>3. อัดไฟล์ / ตรวจสอบไฟล์</h2>
-<p class="warn">รูปแบบหน้าจอกลับเป็นแบบเดิม: เลือกไฟล์ ตรวจผล และดูสถานะได้ แต่คำสั่งเขียนข้อมูลลง ECU จริงถูกปิดไว้</p>
+<p class="warn">โหมด SIM ใช้ทดสอบโดยไม่ส่งอะไรเข้า ECU โหมด REAL เขียนทับข้อมูลใน ECU จริง ถ้าไฟดับหรือสายหลุดกลางทาง กล่องอาจใช้ไม่ได้จนกว่าจะอัดใหม่ ควรมีไฟล์ต้นฉบับของกล่องนี้เก็บไว้ก่อน และทดสอบด้วย SIM ให้ผ่านก่อนเสมอ</p>
 <div class="seg" id="o-mode">
 <button class="btn act" type="button" data-m="sim">SIM ตรวจสอบไฟล์ (ไม่เขียน ECU)</button>
-<button class="btn" type="button" data-m="real" disabled aria-disabled="true">REAL อัดจริง (ปิดใช้งาน)</button>
+<button class="btn" type="button" data-m="real">REAL อัดจริง</button>
 </div>
 <div id="o-realbox" hidden style="margin-top:10px">
-  <label class="ochk"><input type="checkbox" id="o-cBat" disabled><span>การเขียน ECU จริงปิดใช้งาน</span></label>
+  <label class="ochk"><input type="checkbox" id="o-cBat"><span>แบตเตอรี่รถเต็มหรือต่อที่ชาร์จ ไฟนิ่ง ไม่ถอดสายและไม่ปิดหน้านี้ระหว่างอัด</span></label>
 </div>
+<label class="ochk"><input type="checkbox" id="o-turbo"><span>โหมดเร็ว (ทดลอง): ถ้าเคยต้องเพิ่มเวลารอเพราะ ECU ตอบช้า จะลองลดกลับเมื่อผ่านติดกัน 40 บล็อก ถ้าพลาดจะเพิ่มกลับอัตโนมัติ (มีผลกับกล่อง Shindengen)</span></label>
 <div id="o-rowAck" hidden>
-  <label class="ochk"><input type="checkbox" id="o-cAck" disabled><span>การเขียน ECU จริงปิดใช้งาน</span></label>
+  <label class="ochk"><input type="checkbox" id="o-cAck"><span>ผลตรวจไฟล์มีคำเตือน ฉันอ่านแล้วและต้องการอัดต่อ</span></label>
 </div>
 <div class="row" style="margin-top:10px">
-  <button class="btn pri" id="o-bGo" type="button" disabled>การเขียน ECU ปิดอยู่</button>
+  <button class="btn pri" id="o-bGo" type="button" disabled>เริ่ม SIM</button>
   <button class="btn neg" id="o-bStop" type="button" hidden>หยุด</button>
 </div>
 <div style="margin-top:12px" id="o-prog" hidden>
@@ -489,6 +546,20 @@ input.sm{width:92px}
   <span id="o-check-scan">รอตรวจสอบ</span>
   <span id="o-check-id">ตรวจสอบแยกต่างหาก</span>
   <span id="o-readonly-note">โหมดตรวจสอบไฟล์เท่านั้น</span>
+</div>
+</div>
+<div class="blk" id="dumpBlk">
+<h2>4. อ่านข้อมูลจากกล่อง ECU เป็นไฟล์ .bin (ทดลอง · อ่านอย่างเดียว)</h2>
+<p class="warn">ใช้คำสั่งอ่านแบบเดียวกับที่แอปใช้อ่าน ID กล่อง (อ่านตามแอดเดรส 16 บิต ได้ไม่เกิน 0xFFFF = 64 KB) ยังไม่ยืนยันว่าตรงกับพื้นที่แฟลชจริงของกล่องรุ่นนี้ จึงกด ทดสอบอ่าน ก่อนเสมอ ไฟล์ที่ได้ห้ามนำไปอัดกลับ จนกว่าจะเทียบกับไฟล์ต้นฉบับแล้วตรงกัน ไม่เขียนอะไรลง ECU</p>
+<div class="row">
+<label class="k" for="dm-fs">ขนาดไฟล์ ECU</label><select id="dm-fs"><option value="64" selected>64 KB</option><option value="48">48 KB</option><option value="256">256 KB</option><option value="384">384 KB</option></select>
+<label class="k" for="dm-addr">เริ่มที่ (hex)</label><input type="text" id="dm-addr" value="0000" style="width:90px" spellcheck="false" autocomplete="off">
+<label class="k" for="dm-size">ขนาด</label><select id="dm-size"><option value="4096">4 KB</option><option value="16384">16 KB</option><option value="32768">32 KB</option><option value="49152">48 KB</option><option value="65536" selected>64 KB</option></select>
+<label class="k" for="dm-blk">ไบต์ต่อครั้ง</label><select id="dm-blk"><option value="16">16</option><option value="32" selected>32</option><option value="40">40</option></select>
+</div>
+<label class="ochk"><input type="checkbox" id="dm-ver"><span>อ่านซ้ำรอบที่สองเพื่อเทียบความถูกต้อง (ใช้เวลาเป็นสองเท่า)</span></label>
+<div class="row" style="margin-top:8px"><button class="btn" id="dm-probe" type="button">ทดสอบอ่าน</button><button class="btn" id="dm-scan" type="button">สแกนช่วงที่อ่านได้</button><button class="btn pri" id="dm-hi" type="button">อ่าน 8000–FFFF (32 KB · รุ่น 64 KB)</button><button class="btn pri" id="dm-hi48" type="button">อ่าน 4000–BFFF (32 KB · รุ่น 48 KB)</button><button class="btn" id="dm-full" type="button">อ่านเต็ม 64 KB (0000–FFFF)</button><button class="btn" id="dm-go" type="button">เริ่มอ่านตามที่ตั้ง</button><button class="btn neg" id="dm-stop" type="button" hidden>หยุด</button><button class="btn" id="dm-dl" type="button" disabled>ดาวน์โหลด .bin</button><button class="btn" id="dm-tune" type="button" disabled>เปิดในแท็บจูนเพื่อแก้</button></div>
+<div class="opbar"><i id="dm-bar"></i></div><div class="onum" id="dm-num"></div><div class="msg" id="dm-msg"></div>
 </div>
 </section>
 
@@ -523,7 +594,7 @@ var onGauge=false; // Direct OTG build: never polls or connects to an ESP32 gaug
 $("#stHost").textContent="USB OTG";
 
 /* ---------- tabs ---------- */
-var TABS=["live","map","tune","auto","otg"],cur="live";
+var TABS=["live","map","tune","auto","otg","can"],cur="live";
 function show(n){cur=n;TABS.forEach(function(t){$("#tab-"+t).hidden=t!==n});
 document.querySelectorAll(".tabs button").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.tab===n))});
 if(n==="map"){loadMap();fuelRender()}if(n==="auto"){atSync();if(AT.pos&&AT.goal){atPlace(Date.now()-AT.lastAt>1500)}}if(n==="files")loadFl();if(n==="link")loadId()}
@@ -876,9 +947,19 @@ t.cols=(t.x&&t.x.cnt)||t.z.cc||1;t.rows=(t.y&&t.y.cnt)||t.z.rc||1}
 if(!t.z||t.z.addr==null)return null;
 t.rm=!!t.z.rm0;t.ro=!t.z.inv;
 return t}
+function tXmlClean(s){
+s=s.replace(/^\uFEFF/,"").replace(/\u0000/g,"").replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g,"");
+var a=s.indexOf("<");if(a>0)s=s.slice(a);
+var e=s.search(/<\/XDFFORMAT\s*>/i);if(e>=0){var m=s.slice(e).match(/^<\/XDFFORMAT\s*>/i);s=s.slice(0,e)+m[0]}
+s=s.replace(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g,"&amp;");
+return s}
+function tXmlTry(s){var doc=new DOMParser().parseFromString(s,"text/xml"),pe=doc.getElementsByTagName("parsererror");
+return{doc:doc,err:pe.length?(pe[0].textContent||"").replace(/\s+/g," ").trim().slice(0,160):null}}
 function tParse(s){
-var doc=new DOMParser().parseFromString(s,"text/xml"),root=doc.documentElement;
-if(!root||doc.getElementsByTagName("parsererror").length)throw new Error("ไฟล์ XML เสีย");
+var r=tXmlTry(s);
+if(r.err||!r.doc.documentElement)r=tXmlTry(tXmlClean(s));
+if(r.err||!r.doc.documentElement)throw new Error("ไฟล์ XML เสีย"+(r.err?" ("+r.err+")":""));
+var doc=r.doc,root=doc.documentElement;
 if(root.nodeName.toUpperCase()!=="XDFFORMAT")throw new Error("ไม่ใช่ไฟล์ XDF");
 var hd=kid(root,"XDFHEADER"),base=0,cats=[],reg=0,tabs=[];
 if(hd){var bo=kid(hd,"BASEOFFSET");if(bo){var off=num(ga(bo,"offset"))||0;base=ga(bo,"subtract")==="1"?-off:off}
@@ -950,7 +1031,17 @@ w=$("#t-wrap");w.innerHTML=h+"</tbody></table>";
 T.cells=[].slice.call(w.querySelectorAll("td"));T.rh=[].slice.call(w.querySelectorAll("tbody th"));T.ch=[].slice.call(w.querySelectorAll("thead th")).slice(1);
 $("#tUnit").textContent=z.unit?"· "+z.unit:"";
 $("#taxinfo").textContent="แกนคอลัมน์: "+tAxSrc(t.x)+" · แกนแถว: "+tAxSrc(t.y);
-tLaxSet(t,xs,ys);fuelUseSelectedXdfTable(t);tPaint();tRender3D();atSync()}
+tLaxSet(t,xs,ys);fuelUseSelectedXdfTable(t);tPaint();tFit();tRender3D();atSync()}
+function tFit(){var w=$("#t-wrap"),t=T.cur;if(!w||!t)return;
+var on=$("#tfit").checked,W=w.clientWidth;
+if(!on||!W){w.classList.remove("fit");return}
+var mx=4,i;for(i=0;i<T.cells.length;i++){var L=T.cells[i].textContent.length;if(L>mx)mx=L}
+T.ch.forEach(function(th){if(th.textContent.length>mx)mx=th.textContent.length});
+var cw=(W-2)/(t.cols+1.1),fs=Math.min(14,cw/(mx*0.62+0.6));
+if(fs<7){w.classList.remove("fit");return}
+w.style.setProperty("--fitfs",fs.toFixed(2)+"px");w.style.setProperty("--fitrh",Math.max(20,Math.round(fs*2.4))+"px");w.classList.add("fit")}
+window.addEventListener("resize",function(){if(T.cur)tFit()});
+
 function tKind(a,L){var q=(((a&&a.unit)||"")+" "+(L?L.title:"")).toLowerCase();
 if(/rpm|รอบ/.test(q))return"rpm";if(/tps|throttle|คันเร่ง|%/.test(q))return"tps";if(/map|kpa|แรงดัน/.test(q))return"map";return""}
 function tLaxSet(t,xs,ys){function one(a,v){var k=tKind(a,tLinked(a));if(!k&&Math.max.apply(null,v)>=1500)k="rpm";return k}
@@ -998,6 +1089,7 @@ tApply(function(v){return T.mode==="p"?v*(1+sg*a/100):v+sg*a})}
 /* รายการตาราง */
 function tChips(){var h="";
 if(T.bin)h+=chip("BIN "+esc(T.binName)+" · "+fmtSize(T.bin.length),"ok");
+if(T.bin&&T.dumpOnly)h+=chip("ไฟล์จากการอ่านหน่วยความจำ ECU ใช้แก้/ดูเท่านั้น ห้ามอัดกลับ","bad");
 if(T.xdfName)h+=chip("XDF "+esc(T.xdfName)+" · "+(T.tabs.length+T.flags.length)+" รายการ","ok");
 if(T.bin&&T.reg&&T.reg!==T.bin.length)h+=chip("ขนาด bin ("+T.bin.length+") ไม่ตรงกับที่ XDF ระบุ ("+T.reg+")","bad");
 $("#tchips").innerHTML=h||'<span class="chip">ยังไม่ได้เลือกไฟล์</span>'}
@@ -1064,6 +1156,9 @@ function fixMoji(s){var i,c,u=new Uint8Array(s.length),hi=0;
 for(i=0;i<s.length;i++){c=s.charCodeAt(i);if(C1[c]!==undefined)c=C1[c];if(c>255)return s;u[i]=c;if(c>=0xA1)hi++}
 return hi?tis(u):s}
 function decodeTxt(buf){var u=new Uint8Array(buf);
+if(u.length>=2&&u[0]===0xFF&&u[1]===0xFE)try{return new TextDecoder("utf-16le").decode(u.subarray(2))}catch(e){}
+if(u.length>=2&&u[0]===0xFE&&u[1]===0xFF)try{return new TextDecoder("utf-16be").decode(u.subarray(2))}catch(e){}
+if(u.length>=4&&u[1]===0&&u[3]===0&&u[0]!==0)try{return new TextDecoder("utf-16le").decode(u)}catch(e){}
 try{return fixMoji(new TextDecoder("utf-8",{fatal:true}).decode(u))}catch(e){}
 return tis(u)}
 function readFile(f,asText,cb){var fr=new FileReader();fr.onerror=function(){cb(null)};fr.onload=function(){cb(fr.result)};if(asText)fr.readAsText(f);else fr.readAsArrayBuffer(f)}
@@ -1075,7 +1170,7 @@ readFile(f,false,function(b){
 if(!b){tmsg("อ่านไฟล์ไม่ได้");return}
 if(tDirty()&&!confirm("มีการแก้ค่าที่ยังไม่ได้บันทึก เปิดไฟล์ใหม่จะหายหมด ต่อไหม?"))return;
 T.bin=new Uint8Array(b);T.orig=T.bin.slice(0);T.dv=new DataView(T.bin.buffer);T.dvo=new DataView(T.orig.buffer);
-T.binName=f.name;T.undo=[];T.cur=null;T.sel=null;$("#t-ed").hidden=true;
+T.binName=f.name;T.dumpOnly=false;T.undo=[];T.cur=null;T.sel=null;$("#t-ed").hidden=true;
 T.crc0=hex8(crc32(T.orig));$("#tname").value=outName(f.name);$("#tGo").hidden=true;
 T.tabs.forEach(function(t){t.dirty=false});
 tmsg("");tChips();tList();tStat()})});
@@ -1089,6 +1184,63 @@ T.tabs.forEach(function(t){t.dirty=T.bin&&tFits(t)?tDirtyOf(t):false});
 tCats();
 tmsg(T.tabs.length+T.flags.length?"":"ไม่พบตารางในไฟล์นี้");tChips();tList()})});
 $("#tq").addEventListener("input",tList);$("#tc").addEventListener("change",tList);
+/* ---------------- คลังไฟล์: เลือกทั้งโฟลเดอร์ แล้วกดเปิดเข้าแท็บจูนได้เลย ---------------- */
+(function(){
+ var L={list:[],dir:null,cur:"",name:""},EXT=/\.(bin|xdf)$/i;
+ function info(t){$("#libInfo").textContent=t}
+ function fmt(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB"}
+ function idb(mode,fn){return new Promise(function(res,rej){try{var q=indexedDB.open("ktec_lib",1);q.onupgradeneeded=function(){q.result.createObjectStore("kv")};q.onerror=function(){rej(q.error)};
+  q.onsuccess=function(){var db=q.result,t=db.transaction("kv",mode),r=fn(t.objectStore("kv"));t.oncomplete=function(){db.close();res(r&&r.result)};t.onerror=function(){rej(t.error)}}}catch(e){rej(e)}})}
+ function memSave(h){return idb("readwrite",function(s){return s.put(h,"dir")}).catch(function(){})}
+ function memLoad(){return idb("readonly",function(s){return s.get("dir")}).catch(function(){return null})}
+ function render(){
+  var q=$("#libQ").value.trim().toLowerCase(),a=L.list.filter(function(e){return!q||e.path.toLowerCase().indexOf(q)>=0}),box=$("#libList");
+  box.textContent="";
+  a.slice(0,200).forEach(function(e){
+   var b=document.createElement("button");b.type="button";b.className="btn";
+   b.style.cssText="display:flex;width:100%;justify-content:space-between;gap:8px;text-align:left;margin-top:4px;height:auto;padding-top:8px;padding-bottom:8px"+(e.path===L.cur?";border-color:var(--hi)":"");
+   var n=document.createElement("span");n.style.wordBreak="break-all";n.textContent=e.path;
+   var m=document.createElement("span");m.className="k";m.style.whiteSpace="nowrap";m.textContent=(/\.xdf$/i.test(e.name)?"XDF · ":"BIN · ")+fmt(e.size);
+   b.appendChild(n);b.appendChild(m);b.addEventListener("click",function(){openOne(e)});box.appendChild(b)});
+  info(L.list.length?("โฟลเดอร์ "+L.name+": พบ "+L.list.length+" ไฟล์"+(a.length!==L.list.length?" · ตรงกับคำค้น "+a.length:"")+(a.length>200?" (แสดง 200 ไฟล์แรก พิมพ์ค้นหาเพื่อกรอง)":"")):(L.name?"ไม่พบไฟล์ .bin / .xdf ในโฟลเดอร์ "+L.name:"ยังไม่ได้เลือกโฟลเดอร์"))}
+ function setList(out,name){
+  out.sort(function(a,b){return a.path.localeCompare(b.path,"th",{numeric:true})});
+  L.list=out;L.name=name;$("#libRe").hidden=!L.dir;$("#libMem").hidden=true;render()}
+ async function walk(dh,pre,out,depth){
+  for await(var kv of dh.entries()){
+   var n=kv[0],h=kv[1];if(out.length>=3000)return;
+   if(h.kind==="directory"){if(depth<4&&n.charAt(0)!==".")await walk(h,pre+n+"/",out,depth+1)}
+   else if(EXT.test(n)){var sz=0;try{sz=(await h.getFile()).size}catch(e){}out.push({name:n,path:pre+n,size:sz,h:h})}}}
+ async function scan(dh){
+  info("กำลังสแกนโฟลเดอร์ "+dh.name+"…");
+  try{var out=[];await walk(dh,"",out,0);setList(out,dh.name)}
+  catch(e){info("สแกนโฟลเดอร์ไม่ได้: "+(e&&e.message||e))}}
+ async function openOne(e){
+  try{
+   var f=e.f||await e.h.getFile(),id=/\.xdf$/i.test(e.name)?"txdf":"tbin",inp=$("#"+id),dt=new DataTransfer();
+   dt.items.add(f);inp.files=dt.files;L.cur=e.path;render();
+   inp.dispatchEvent(new Event("change"))}   // ใช้ตัวเปิดไฟล์เดิมของแท็บจูนทุกอย่าง (เช็กขนาด/ถามก่อนทับ/สร้างชื่อไฟล์ผลลัพธ์)
+  catch(err){info("เปิดไฟล์ไม่ได้: "+(err&&err.message||err)+" (ไฟล์อาจถูกย้ายหรือลบ กดสแกนใหม่)")}}
+ $("#libPick").addEventListener("click",async function(){
+  if(window.showDirectoryPicker){
+   try{var dh=await window.showDirectoryPicker({id:"ktec-tunes",mode:"read"});L.dir=dh;memSave(dh);await scan(dh)}
+   catch(e){if(!e||e.name!=="AbortError")info("เลือกโฟลเดอร์ไม่ได้: "+(e&&e.message||e))}}
+  else $("#libFallback").click()});
+ $("#libFallback").addEventListener("change",function(){
+  var fs=Array.prototype.slice.call(this.files||[]).filter(function(f){return EXT.test(f.name)});
+  var root=fs.length&&fs[0].webkitRelativePath?fs[0].webkitRelativePath.split("/")[0]:"";
+  L.dir=null;setList(fs.map(function(f){return{name:f.name,path:(f.webkitRelativePath||f.name).replace(root+"/",""),size:f.size,f:f}}),root||"ที่เลือก");this.value=""});
+ $("#libRe").addEventListener("click",function(){if(L.dir)scan(L.dir)});
+ $("#libQ").addEventListener("input",render);
+ // จำโฟลเดอร์ไว้ ครั้งหน้าเปิดหน้านี้แล้วกดปุ่มเดียวก็ได้รายการเดิม
+ if(window.showDirectoryPicker)memLoad().then(async function(h){
+  if(!h)return;
+  try{
+   if(await h.queryPermission({mode:"read"})==="granted"){L.dir=h;await scan(h);return}
+   var b=$("#libMem");b.textContent="เปิดโฟลเดอร์ที่จำไว้: "+h.name;b.hidden=false;
+   b.onclick=async function(){try{if(await h.requestPermission({mode:"read"})==="granted"){L.dir=h;await scan(h)}else info("ไม่ได้รับสิทธิ์อ่านโฟลเดอร์")}catch(e){info("เปิดโฟลเดอร์ที่จำไว้ไม่ได้: "+(e&&e.message||e))}}}
+  catch(e){}});
+})();
 
 /* เลือกช่อง */
 var tw=$("#t-wrap");
@@ -1165,7 +1317,7 @@ tx.oncomplete=function(){$("#tsavedAt").textContent="เซฟล่าสุด
 tx.onerror=function(){if(!quiet)tmsg("เซฟไม่สำเร็จ")}})}
 function tRestoreRun(d){
 T.bin=new Uint8Array(d.bin);T.orig=new Uint8Array(d.orig);T.dv=new DataView(T.bin.buffer);T.dvo=new DataView(T.orig.buffer);
-T.binName=d.binName;T.undo=[];T.cur=null;T.sel=null;$("#t-ed").hidden=true;T.crc0=hex8(crc32(T.orig));$("#tname").value=outName(d.binName);
+T.binName=d.binName;T.dumpOnly=false;T.undo=[];T.cur=null;T.sel=null;$("#t-ed").hidden=true;T.crc0=hex8(crc32(T.orig));$("#tname").value=outName(d.binName);
 if(d.xdf){try{var r=tParse(d.xdf);T.tabs=r.tabs;T.flags=r.flags;T.byId=r.byId;T.reg=r.reg;T.xdfName=d.xdfName;T.xdfTxt=d.xdf;tCats()}catch(e){}}
 T.tabs.forEach(function(t){t.dirty=tFits(t)?tDirtyOf(t):false});
 tChips();tList();tStat();tmsg("กู้งานล่าสุดแล้ว: "+d.binName)}
@@ -1176,9 +1328,17 @@ $("#tRestoreRow").hidden=false;$("#tRestore").onclick=function(){tRestoreRun(d)}
 $("#tSave").addEventListener("click",function(){if(!T.bin){tmsg("ยังไม่ได้เลือกไฟล์ .bin");return}tSave(false)});
 $("#tOtg").addEventListener("click",function(){
 if(!T.bin){tmsg("ยังไม่ได้เลือกไฟล์ .bin");return}
+if(T.dumpOnly){tmsg("ไฟล์นี้มาจากการอ่านหน่วยความจำ ECU ไม่ใช่ไฟล์แฟลช ห้ามส่งไปอัด");return}
 if(!window.ktecOtg){tmsg("ไม่พบแท็บ OTG ในหน้านี้");return}
 window.ktecOtg.load(T.bin.slice(0),tName()||"tune.bin");tSave(true);show("otg");window.scrollTo(0,0)});
 window.addEventListener("beforeunload",function(e){if(T.bin&&tDirty()){e.preventDefault();e.returnValue=""}});
+window.ktecTuneLoad=function(buf,name){
+if(tDirty()&&!confirm("มีการแก้ค่าที่ยังไม่ได้บันทึก เปิดไฟล์ใหม่จะหายหมด ต่อไหม?"))return false;
+T.bin=new Uint8Array(buf);T.orig=T.bin.slice(0);T.dv=new DataView(T.bin.buffer);T.dvo=new DataView(T.orig.buffer);
+T.binName=name;T.dumpOnly=true;T.undo=[];T.cur=null;T.sel=null;$("#t-ed").hidden=true;
+T.crc0=hex8(crc32(T.orig));$("#tname").value=outName(name);$("#tGo").hidden=true;
+T.tabs.forEach(function(t){t.dirty=false});
+tmsg("เปิดไฟล์จากการอ่าน ECU แล้ว เลือก .xdf แล้วเลือกตารางเพื่อแก้ (ไฟล์นี้ห้ามอัดกลับ)");tChips();tList();tStat();show("tune");window.scrollTo(0,0);return true};
 tChips();tList();tStat();
 
 /* periodic refresh of the visible tab */
@@ -1506,15 +1666,29 @@ if(e.ctrlKey||e.metaKey){var k=e.key.toLowerCase();if(k==="a"){e.preventDefault(
 if(e.key==="+"||e.key==="="||e.key==="-"){e.preventDefault();var d=e.key==="-"?-1:1,z=t.z,step=Math.pow(10,-z.dec);
 /* one displayed step, or one raw step when that is coarser */
 tApply(function(v,r,c){var raw=rd(z,T.dv,tAddr(t,r,c));if(z.flt)return v+d*step;var next=Math.abs(z.f(raw+1)-z.f(raw));return v+d*Math.max(step,next)})}});
-document.addEventListener("copy",function(e){var t=T.cur,s=T.sel;if(document.activeElement!==tg||!t||!s)return;
+function tCopyText(){var t=T.cur,s=T.sel;if(!t||!s)return"";
 var V=tVals(t),out=[],r,c,row;for(r=s.r0;r<=s.r1;r++){row=[];for(c=s.c0;c<=s.c1;c++)row.push(V[r][c].toFixed(t.z.dec));out.push(row.join("\t"))}
-e.clipboardData.setData("text/plain",out.join("\n"));e.preventDefault();fxSay("คัดลอก "+tCells().length+" ช่องแล้ว")});
-document.addEventListener("paste",function(e){var t=T.cur,s=T.sel;if(document.activeElement!==tg||!t||!s)return;e.preventDefault();
-var g=e.clipboardData.getData("text/plain").replace(/\r/g,"").replace(/\n+$/,"").split("\n").map(function(l){return l.split("\t").map(function(v){return v.trim()===""?NaN:Number(v.trim().replace(",","."))})});
+return out.join("\n")}
+function tPasteText(txt){var t=T.cur,s=T.sel;if(!t||!s)return;
+txt=String(txt||"").replace(/\r/g,"").replace(/\n+$/,"");if(!txt.trim()){fxSay("ไม่มีข้อมูลให้วาง");return}
+var tabbed=txt.indexOf("\t")>=0;
+var g=txt.split("\n").map(function(l){return(tabbed?l.split("\t"):l.trim().split(/[;\s]+/)).map(function(v){return v.trim()===""?NaN:Number(v.trim().replace(",","."))})});
 if(g.some(function(row){return row.length!==g[0].length||row.some(function(v){return!isFinite(v)})})){fxSay("วางไม่ได้: ข้อมูลต้องเป็นตัวเลขแบบตาราง");return}
-if(g.length===1&&g[0].length===1){tApply(function(){return g[0][0]});return}
-if(s.r0+g.length>t.rows||s.c0+g[0].length>t.cols){fxSay("วางไม่ได้: ข้อมูลล้นขอบตาราง");return}
-T.sel=tRect(s.r0,s.c0,s.r0+g.length-1,s.c0+g[0].length-1);T.anc={r:s.r0,c:s.c0};tApply(function(v,r,c){return g[r-s.r0][c-s.c0]})});
+if(g.length===1&&g[0].length===1){tApply(function(){return g[0][0]});fxSay("วางค่า "+g[0][0]+" ลง "+tCells().length+" ช่องแล้ว");return}
+if(s.r0+g.length>t.rows||s.c0+g[0].length>t.cols){fxSay("วางไม่ได้: ข้อมูลล้นขอบตาราง (เลือกช่องเริ่มต้นให้เลื่อนขึ้น/ซ้ายกว่านี้)");return}
+T.sel=tRect(s.r0,s.c0,s.r0+g.length-1,s.c0+g[0].length-1);T.anc={r:s.r0,c:s.c0};tApply(function(v,r,c){return g[r-s.r0][c-s.c0]});
+fxSay("วางข้อมูล "+g.length+"×"+g[0].length+" ช่องแล้ว")}
+document.addEventListener("copy",function(e){if(document.activeElement!==tg||!T.cur||!T.sel)return;
+e.clipboardData.setData("text/plain",tCopyText());e.preventDefault();fxSay("คัดลอก "+tCells().length+" ช่องแล้ว")});
+document.addEventListener("paste",function(e){if(document.activeElement!==tg||!T.cur||!T.sel)return;e.preventDefault();tPasteText(e.clipboardData.getData("text/plain"))});
+$("#tCopy").addEventListener("click",function(){if(!T.cur||!T.sel){fxSay("เลือกช่องในตารางก่อน");return}
+var txt=tCopyText(),n=tCells().length;
+function fb(){var ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();var ok=false;try{ok=document.execCommand("copy")}catch(x){}ta.remove();if(ok)fxSay("คัดลอก "+n+" ช่องแล้ว");else prompt("คัดลอกข้อความนี้",txt)}
+if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(function(){fxSay("คัดลอก "+n+" ช่องแล้ว")},fb);else fb()});
+$("#tPaste").addEventListener("click",function(){if(!T.cur||!T.sel){fxSay("เลือกช่องเริ่มต้นในตารางก่อน");return}
+function ask(){var v=prompt("วางข้อมูลที่คัดลอกไว้ (ตัวเลขคั่นด้วยแท็บหรือช่องว่าง)");if(v!=null)tPasteText(v)}
+if(navigator.clipboard&&navigator.clipboard.readText)navigator.clipboard.readText().then(tPasteText,ask);else ask()});
+$("#tfit").addEventListener("change",tFit);
 updateChecks();
 if(!onGauge&&!window.ktecLiveOn)clearLive();
 })();
@@ -1575,7 +1749,7 @@ class Ftdi{
   this.name=dev.productName||"FTDI";
   await this.ctl(0,0,this.ifc);                 // reset
   await this.ctl(2,0,this.ifc);                 // ไม่ใช้ flow control
-  await this.ctl(9,4,this.ifc);                 // latency timer 4 ms
+  await this.ctl(9,1,this.ifc);                 // latency timer 1 ms (ลดเวลารอข้อมูลตอบกลับต่อเฟรม)
   await this.setBaud(10400);
   await this.setBreak(false);
   await this.ctl(0,1,this.ifc);await this.ctl(0,2,this.ifc);   // ล้าง buffer
@@ -1607,6 +1781,95 @@ class Ftdi{
    }catch(e){if(this.run){this.run=false;onUsbLost()}break}
   }}
  async close(){this.run=false;try{await this.dev.close()}catch(e){}}
+}
+
+/* ---------------- สำรอง: ต่อผ่านพอร์ต COM (Web Serial) ใช้ได้กับไดรเวอร์ FTDI ปกติของ Windows ไม่ต้องใช้ Zadig ---------------- */
+class SerialLink{
+ constructor(onData){this.onData=onData;this.port=null;this.run=false;this.name="พอร์ต COM";this.bcd=0}
+ async open(){
+  const port=await navigator.serial.requestPort({filters:[{usbVendorId:0x0403}]});
+  const inf=port.getInfo?port.getInfo():{};
+  log("เลือกพอร์ต COM"+(inf.usbVendorId!==undefined?" VID:PID = "+hex(inf.usbVendorId,4)+":"+hex(inf.usbProductId||0,4):""));
+  await port.open({baudRate:this.baud||10400,dataBits:8,stopBits:1,parity:"none",flowControl:"none",bufferSize:4096});
+  this.port=port;this.run=true;
+  this.writer=port.writable.getWriter();
+  try{await port.setSignals({break:false})}catch(e){}
+  this.loop()}
+ async setBreak(on){await this.port.setSignals({break:!!on})}
+ write(a){return this.writer.write(Uint8Array.from(a))}
+ async loop(){
+  // Web Serial: BreakError/FramingError/ParityError/BufferOverrun ทำให้ stream อ่านเดิมตาย (เกิดทุกครั้งที่ส่ง break ปลุก ECU)
+  // ต้องขอ reader ใหม่แล้วอ่านต่อ ห้ามถือว่าสายหลุด
+  while(this.run&&this.port&&this.port.readable){
+   const rd=this.port.readable.getReader();this.reader=rd;let ended=false;
+   try{
+    for(;;){const r=await rd.read();if(r.done){ended=true;break}if(r.value&&r.value.length)this.onData(r.value)}
+   }catch(e){ /* error ที่กู้คืนได้ -> วนไปขอ reader ใหม่ */ }
+   finally{try{rd.releaseLock()}catch(_){}}
+   if(ended)break;
+   await new Promise(r=>setTimeout(r,2))}
+  if(this.run){this.run=false;onUsbLost()}}
+ async close(){
+  this.run=false;
+  try{if(this.reader)await this.reader.cancel()}catch(_){}
+  try{if(this.writer){this.writer.releaseLock()}}catch(_){}
+  try{if(this.port)await this.port.close()}catch(_){}}
+}
+
+/* ---------------- Tactrix OpenPort 2.0 ผ่าน WebUSB (ใช้เมื่อ Windows ไม่สร้างพอร์ต COM ให้) ---------------- */
+class CdcUsbLink{
+ constructor(onData){this.onData=onData;this.dev=null;this.run=false;this.name="Tactrix OpenPort 2.0 (WebUSB)";this.bcd=0}
+ async open(){
+  const flt=[{vendorId:0x0403,productId:0xCC4D}];let dev=null;
+  try{const ks=(await navigator.usb.getDevices()).filter(d=>d.vendorId===0x0403&&d.productId===0xCC4D);if(ks.length===1)dev=ks[0]}catch(e){}
+  if(!dev)dev=await navigator.usb.requestDevice({filters:flt});
+  if(dev.opened){try{await dev.close()}catch(_){}}
+  await dev.open();
+  if(!dev.configuration)await dev.selectConfiguration(dev.configurations&&dev.configurations[0]?dev.configurations[0].configurationValue:1);
+  let ei=null,eo=null,ctl=-1,last=null;
+  for(const i of dev.configuration.interfaces){
+   const eps=i.alternates[0].endpoints,bi=eps.find(e=>e.direction==="in"&&e.type==="bulk"),bo=eps.find(e=>e.direction==="out"&&e.type==="bulk");
+   if(!bi&&!bo&&ctl<0&&i.alternates[0].interfaceClass===2)ctl=i.interfaceNumber;
+   if(bi&&bo&&!ei){try{await dev.claimInterface(i.interfaceNumber);ei=bi;eo=bo}catch(e){last=e}}}
+  if(!ei){try{await dev.close()}catch(_){}throw last||new Error("ไม่พบ endpoint แบบ bulk ของ OpenPort")}
+  if(ctl>=0){try{await dev.claimInterface(ctl)}catch(_){}
+   try{await dev.controlTransferOut({requestType:"class",recipient:"interface",request:0x22,value:0x03,index:ctl})}catch(_){}}   // DTR+RTS
+  this.dev=dev;this.inN=ei.endpointNumber;this.outN=eo.endpointNumber;this.run=true;this.loop()}
+ write(a){return this.dev.transferOut(this.outN,Uint8Array.from(a))}
+ async loop(){
+  while(this.run){
+   try{const r=await this.dev.transferIn(this.inN,4096);
+    if(r.status==="ok"&&r.data&&r.data.byteLength){this.onData(new Uint8Array(r.data.buffer,r.data.byteOffset,r.data.byteLength))}
+    else if(r.status==="stall"){await this.dev.clearHalt("in",this.inN)}
+   }catch(e){if(this.run){this.run=false;onUsbLost()}break}}}
+ async close(){this.run=false;try{await this.dev.close()}catch(e){}}
+}
+
+/* ---------------- Scanmatik SM2 (J2534) ผ่านโปรแกรมกลาง sm2_bridge.py บน Windows (WebSocket ที่ 127.0.0.1) ---------------- */
+class Sm2Link{
+ constructor(onData,can){this.onData=onData;this.can=can||null;this.ws=null;this.run=false;this.name="Scanmatik SM2 (J2534)";this.bcd=0}
+ open(){
+  const port=(/^(127\.0\.0\.1|localhost)$/.test(location.hostname)&&+location.port)||8765;
+  return new Promise((res,rej)=>{
+   let done=false;const fail=m=>{if(done)return;done=true;clearTimeout(tm);try{ws.close()}catch(_){}rej(new Error(m))};
+   let ws;try{ws=new WebSocket("ws://127.0.0.1:"+port)}catch(e){rej(e);return}
+   ws.binaryType="arraybuffer";this.ws=ws;
+   const tm=setTimeout(()=>fail("SM2 ไม่ตอบใน 10 วินาที ตรวจว่า sm2_bridge.py เปิดอยู่ และเสียบ SM2 แล้ว"),10000);
+   ws.onopen=()=>ws.send(JSON.stringify(this.can?{c:"hello",can:this.can}:{c:"hello"}));
+   ws.onmessage=ev=>{
+    if(typeof ev.data==="string"){
+     let m;try{m=JSON.parse(ev.data)}catch(_){return}
+     if(m.ok&&!done){done=true;clearTimeout(tm);this.run=true;res()}
+     else if(m.err){log("SM2: "+m.err);if(!done)fail(m.err)}
+     else if(m.log)log("SM2: "+m.log)}
+    else if(this.run)this.onData(new Uint8Array(ev.data))};
+   ws.onerror=()=>fail("ต่อ sm2_bridge.py ไม่ได้ ให้ดับเบิลคลิก start_sm2.bat แล้วใช้หน้าเว็บที่เด้งขึ้นมาเอง (อย่าเปิดไฟล์ html ตรงๆ)");
+   ws.onclose=()=>{if(!done)fail("sm2_bridge.py ปิดการเชื่อมต่อ (เปิดอุปกรณ์ SM2 ไม่สำเร็จ ดูข้อความ SM2: ด้านบน)");else if(this.run){this.run=false;onUsbLost()}}})}
+ _j(o){if(this.ws&&this.ws.readyState===1)this.ws.send(JSON.stringify(o));return Promise.resolve()}
+ setBreak(on){return this._j({c:"brk",on:!!on})}      // บริดจ์วัดความยาว break แล้วสั่ง FAST_INIT ให้เอง
+ setBaud(b){return this._j({c:"baud",v:b})}
+ write(a){if(this.ws&&this.ws.readyState===1)this.ws.send(Uint8Array.from(a));return Promise.resolve()}
+ async close(){this.run=false;try{this.ws.close()}catch(e){}}
 }
 
 /* ---------------- ตารางรหัสกล่อง (ID ECU -> เบอร์กล่อง / รุ่นรถ) ---------------- */
@@ -1743,29 +2006,39 @@ function idShow(id){
 /* ---------------- สถานะ ---------------- */
 const S={ftdi:null,echo:true,rx:[],rep:[],usb:false,ecuOk:false,busy:false,abort:false,running:false,
  bin:null,name:"",pf:null,mode:"sim",done:0,total:0,sent:0,t0:0,wr0:0,wr1:0,dirty:false,wl:null,fails:0};
+/* บันทึกเวลาที่ใช้ในแต่ละขั้นตอนลงช่องบันทึก เพื่อดูว่าเวลาหมดไปกับขั้นไหน */
+let _ph="",_pt=0;
+Object.defineProperty(S,"phase",{get(){return _ph},set(v){const n=performance.now();if(_ph&&_pt)log("  ["+_ph+"] ใช้เวลา "+((n-_pt)/1000).toFixed(1)+" วินาที");_ph=v;_pt=n}});
 const LV={on:false,pause:false,raw:{},base:null,miss:{},fail:0,map:{}};
 function log(m){const l=$("#o-log");l.value+=m+"\n";l.scrollTop=l.scrollHeight}
-function onUsbLost(){S.usb=false;S.ecuOk=false;LV.on=false;window.ktecLiveOn=false;if(window.ktecLive)ktecLive.clear();log("สาย USB หลุด");if(S.running){S.abort=true}render()}
+function onUsbLost(){if(typeof CAN!=="undefined"&&CAN.on){CAN.on=false;CAN.loopId++;CAN.link=null;CAN.tact=false;CAN.sm2=false;window.ktecLiveOn=false;if(window.ktecLive)ktecLive.clear();canLog("สายหลุด");$("#can-usb").disabled=false;$("#can-ser").disabled=false;$("#can-tact").disabled=false;$("#can-sm2").disabled=false;$("#can-stop").hidden=true;return}S.usb=false;S.ecuOk=false;LV.on=false;window.ktecLiveOn=false;if(window.ktecLive)ktecLive.clear();log("สาย USB หลุด");if(S.running){S.abort=true}render()}
 
 /* ---------------- K-line ชั้นล่าง (ตรงกับ flTalk ของเกจ) ---------------- */
+let rxWake=null;
+function rxWait(ms){return new Promise(res=>{const t=setTimeout(()=>{rxWake=null;res()},ms);rxWake=()=>{clearTimeout(t);rxWake=null;res()}})}
 async function waitTx(n){
- if(S.echo){const t0=performance.now();while(S.rx.length<n&&performance.now()-t0<n*1.1+150)await sleep(1)}
+ if(S.echo){const t0=performance.now();let e;while(S.rx.length<n&&(e=n*1.1+150-(performance.now()-t0))>0)await rxWait(Math.min(5,e))}
  else await sleep(n+2)}
 async function talk(fr,gap){
  S.rep=[];S.rx.length=0;
  await S.ftdi.write(fr);
  const n=fr.length;await waitTx(n);
  if(gap)await sleep(gap);
- const tmo=250+2*n,skip=S.echo?n:0,t0=performance.now();
+ const tmo=250+2*n,t0=performance.now();
+ let skip=0,echoOk=!S.echo;
  for(;;){
   const rx=S.rx,got=rx.length;
-  if(S.echo&&got>=n){for(let i=0;i<n;i++)if(rx[i]!==fr[i]){log("ECHO ไม่ตรง: "+rx.slice(0,16).map(x=>hex(x)).join(" "));return false}}
-  if(got>=skip+4){
+  if(!echoOk){            // หา echo ของคำขอ โดยยอมให้มีไบต์เกินนำหน้าได้ไม่เกิน 8 ไบต์ (ไบต์ค้างจากเฟรมก่อน)
+   let found=-1;
+   for(let i=0;i<=8&&i+n<=got&&found<0;i++){let m=true;for(let j=0;j<n;j++)if(rx[i+j]!==fr[j]){m=false;break}if(m)found=i}
+   if(found>=0){echoOk=true;skip=found+n}
+   else if(got>=n+9){log("ECHO ไม่ตรง: "+rx.slice(0,16).map(x=>hex(x)).join(" "));return false}}
+  if(echoOk&&got>=skip+4){
    const L=rx[skip+1];
    if(L>=4&&L<=48&&got>=skip+L){const f=rx.slice(skip,skip+L);if(cks(f,L-1)===f[L-1])S.rep=f;break}
   }
-  if(performance.now()-t0>=tmo)break;
-  await sleep(1);
+  const left=tmo-(performance.now()-t0);if(left<=0)break;
+  await rxWait(Math.min(5,left));
  }
  return S.rep.length>0}
 function findFrame(b,hdr,id3,chk){
@@ -1777,18 +2050,22 @@ function findFrame(b,hdr,id3,chk){
   return i}
  return -1}
 async function sniff(req,waitMs){S.rx.length=0;await S.ftdi.write(req);await sleep(req.length+waitMs);return S.rx.slice()}
-async function wakeSeq(){
- const f=S.ftdi;
+async function wakeSeq(hi){
+ const f=S.ftdi;hi=hi||120;
+ S.rx.length=0;
  await f.setBreak(false);await sleep(20);
  await f.setBreak(true);await sleep(70);
- await f.setBreak(false);await sleep(120);
+ await f.setBreak(false);await sleep(hi);
+ const r0=S.rx.slice();                         // ไบต์ที่ได้ยินระหว่างปลุก (ถ้ามี echo ของ break จะเห็น 00)
  const w=await sniff([0xFE,0x04,0x72,0x8C],100),i=await sniff([0x72,0x05,0x00,0xF0,0x99],100);
+ const hx=a=>a.map(x=>hex(x)).join(" ")||"(ไม่มี)";
+ log("  ระหว่างปลุก RX: "+hx(r0)+" | ตอบ FE-04-72-8C: "+hx(w)+" | ตอบ INIT: "+hx(i));
  return{wake:findFrame(w,0x0E,0,false)>=0,init:findFrame(i,0x02,0,false)>=0}}
 async function readTable(t){
  const rq=[0x72,0x05,0x71,t,0];rq[4]=cks(rq,4);
  S.rx.length=0;await S.ftdi.write(rq);await waitTx(rq.length);
  const t0=performance.now();
- while(performance.now()-t0<150){if(findFrame(S.rx,0x02,t,true)>=0)return true;await sleep(2)}
+ while(performance.now()-t0<150){if(findFrame(S.rx,0x02,t,true)>=0)return true;await rxWait(5)}
  return false}
 async function pingEcu(){return(await readTable(0x17))||(await readTable(0x11))}
 async function readEcmId(){
@@ -2001,7 +2278,7 @@ async function shRun(bin,real){
  }
  S.phase=real?"กำลังเขียน":"จำลองการเขียน";
  S.total=sz-start;S.done=0;S.wr0=performance.now();
- const totalBlk=Math.floor(sz/128);let blk=Math.floor(start/128),unit=start/16,dataGap=0;
+ const totalBlk=Math.floor(sz/128);let blk=Math.floor(start/128),unit=start/16,dataGap=0,okRun=0;const turbo=$("#o-turbo").checked;
  while(blk<totalBlk){
   if(S.abort)throw new Fail(4,S.dirty?"ยกเลิก - ECU เขียนไม่ครบ":"ยกเลิก");
   const data=d.subarray(blk*128,blk*128+128);
@@ -2010,10 +2287,10 @@ async function shRun(bin,real){
    let ok=false;
    for(let t=0;t<3&&!ok;t++){
     if(await talk(fr,dataGap)){
-     if(S.rep.length===5)ok=true;
+     if(S.rep.length===5){ok=true;if(turbo&&dataGap&&++okRun>=40){dataGap=0;okRun=0}}
      else if(S.rep.length===7&&S.rep[4]===0&&S.rep[5]===0){}
      else break}
-    if(!ok){if(S.abort)break;dataGap=CG;await sleep(20)}}
+    if(!ok){if(S.abort)break;dataGap=CG;okRun=0;await sleep(20)}}
    if(!ok){if(S.abort)throw new Fail(4,"ยกเลิก - ECU เขียนไม่ครบ");throw new Fail(3,"ไม่ได้ ACK ที่ 0x"+hex(unit*16,6)+" - อัดใหม่")}
   }else await sleep(4);
   blk++;unit+=8;S.sent+=128;S.done+=128;
@@ -2033,6 +2310,7 @@ async function shRun(bin,real){
 function preflight(bin){
  const sz=bin.length,e7=sz>=7?Array.from(bin.slice(sz-7)):null,r={items:[],verdict:"ok",family:"KH"};
  const add=(lv,t)=>{r.items.push({lv,t});if(lv==="bad")r.verdict="bad";else if(lv==="warn"&&r.verdict==="ok")r.verdict="warn"};
+ if(DM.buf&&DM.crc===crc32(bin))add("bad","ไฟล์นี้คือข้อมูลที่อ่านจากหน่วยความจำ ECU ไม่ใช่ไฟล์แฟลชของกล่อง ห้ามอัดกลับ");
  const is5A=!!e7&&e7[3]===0x5A&&e7[4]===0x5A&&e7[5]===0x5A&&e7[6]===0x5A;
  if(SH_SIZE_OK(sz)&&(is5A||sz!==262144)){
   r.family="SH";
@@ -2060,7 +2338,7 @@ function canReal(){
 function render(){
  const real=S.mode==="real";
  $("#o-bId").disabled=!S.usb||!S.ecuOk||S.running;
- $("#o-bEcu").disabled=!S.usb||S.running;$("#o-bLoop").disabled=!S.usb||S.running;$("#o-bUsb").disabled=S.running;
+ $("#o-bEcu").disabled=!S.usb||S.running;$("#o-bLoop").disabled=!S.usb||S.running;$("#o-bUsb").disabled=S.running||!("usb"in navigator);$("#o-bSer").disabled=S.running||!("serial"in navigator);$("#o-bSm2").disabled=S.running;
  let h=chip(S.usb?"USB: "+esc(S.ftdi&&S.ftdi.name||"FTDI"):"USB: ยังไม่ต่อ",S.usb?"ok":"");
  h+=chip(S.ecuOk?"ECU: ตอบ":"ECU: ยังไม่ต่อ",S.ecuOk?"ok":"");
  $("#o-chips").innerHTML=h;
@@ -2071,11 +2349,11 @@ function render(){
   $("#o-check-scan").textContent=S.pf.items.length?"ตรวจแล้ว":"ไม่พบผลตรวจ";
  }else{$("#o-check-file").textContent="รอเลือกไฟล์";$("#o-check-scan").textContent="รอตรวจสอบ"}
  $("#o-check-id").textContent=$("#o-idIn").value?"มี ID ให้ตรวจค้น":"รออ่าน/ค้นหา ID";
- $("#o-realbox").hidden=true;
- $("#o-rowAck").hidden=true;
- $("#o-bGo").textContent="การเขียน ECU ปิดอยู่";
+ $("#o-realbox").hidden=!real;
+ $("#o-rowAck").hidden=!(real&&S.pf&&S.pf.verdict==="warn");
+ $("#o-bGo").textContent=real?"อัดจริงลง ECU":"เริ่ม SIM";
  $("#o-bGo").className="btn "+(real?"red":"pri");
- $("#o-bGo").disabled=true;
+ $("#o-bGo").disabled=S.running||(real?!canReal():!(S.bin&&S.pf));
  $("#o-bStop").hidden=!S.running}
 function tick(){
  if(!S.running&&!S.t0)return;
@@ -2088,11 +2366,10 @@ function tick(){
 async function lock(on){try{if(on&&navigator.wakeLock)S.wl=await navigator.wakeLock.request("screen");else if(S.wl){await S.wl.release();S.wl=null}}catch(e){}}
 
 async function startFlash(){
- if(S.mode==="real")return;
  if(S.running||!S.bin||!S.pf)return;
- const real=false;
- if(S.mode==="real")return;
- if(real&&!confirm("อัดจริงลง ECU ตอนนี้? ถ้าหยุดกลางทางกล่องอาจใช้ไม่ได้จนกว่าจะอัดใหม่"))return;
+ const real=S.mode==="real";
+ if(real&&!canReal())return;
+ if(real&&!confirm("อัดจริงไฟล์ "+S.name+" ลง ECU ตอนนี้?\n\nห้ามถอดสาย ห้ามปิดหน้านี้ และห้ามดับไฟจนกว่าจะเสร็จ ถ้าหยุดกลางทางกล่องอาจใช้ไม่ได้จนกว่าจะอัดใหม่"))return;
  S.running=true;LV.pause=true;while(S.busy)await sleep(5);S.abort=false;S.busy=true;S.dirty=false;S.done=0;S.total=0;S.sent=0;S.wr0=0;S.wr1=0;S.t0=performance.now();S.t1=0;S.phase="เริ่ม";
  $("#o-prog").hidden=false;$("#o-res").textContent="";$("#o-res").className="";
  await lock(true);render();
@@ -2114,9 +2391,16 @@ async function connectEcu(){
  LV.pause=true;while(S.busy)await sleep(10);
  S.busy=true;$("#o-ecuinfo").textContent="กำลังต่อ ECU...";
  try{
-  const w=await wakeSeq();
-  log("WAKE "+(w.wake?"ตอบ":"ไม่ตอบ")+"  INIT "+(w.init?"ตอบ":"ไม่ตอบ"));
-  let t=await pingEcu();
+  let w={wake:false,init:false},t=false;
+  for(const hi of [120,200,350]){                  // ลองปลุกได้สูงสุด 3 รอบ เว้นช่วงหลังปลุกยาวขึ้นทุกรอบ
+   log("ปลุก ECU (รอหลังปลุก "+hi+" ms) echo="+(S.echo?"เปิด":"ปิด"));
+   w=await wakeSeq(hi);
+   log("WAKE "+(w.wake?"ตอบ":"ไม่ตอบ")+"  INIT "+(w.init?"ตอบ":"ไม่ตอบ"));
+   t=await pingEcu();
+   if(t||w.wake||w.init)break;
+   log("  อ่านตารางไม่ได้ RX ที่ค้าง: "+(S.rx.slice(0,16).map(x=>hex(x)).join(" ")||"(ไม่มี)"));
+   if(S.abort)break;
+   await sleep(500)}
   if(!t){S.echo=!S.echo;$("#o-cEcho").checked=S.echo;t=await pingEcu();if(t)log("สลับค่า echo ให้อัตโนมัติ -> "+(S.echo?"มี echo":"ไม่มี echo"));else{S.echo=!S.echo;$("#o-cEcho").checked=S.echo}}
   S.ecuOk=t||w.wake||w.init;S.fails=0;
   if(S.ecuOk){const id=await readEcmId();if(id){$("#o-idIn").value=id;idShow(id)}else $("#o-idres").textContent="อ่านรหัสกล่องไม่ได้ (ECU ไม่ตอบคำสั่งอ่าน ID)"}
@@ -2133,23 +2417,36 @@ async function keepAlive(){
   try{if(await pingEcu()){S.fails=0}else if(++S.fails>=5){S.ecuOk=false;$("#o-ecuinfo").textContent="ECU เงียบไป (session หมดเวลา) กด ต่อ ECU ใหม่";render()}}catch(e){}
   S.busy=false}}
 
-async function connectUsb(){
+async function connectUsb(mode){
+ if(typeof CAN!=="undefined"&&CAN.on){log("ปิดการเชื่อมต่อแท็บ CAN bus ก่อน (ใช้สายได้ทีละแบบ)");return}
  try{
   if(S.ftdi)await S.ftdi.close();
   S.rx.length=0;
-  S.ftdi=new Ftdi(b=>{for(let i=0;i<b.length;i++)S.rx.push(b[i]);if(S.rx.length>4096)S.rx.splice(0,S.rx.length-4096)});
+  const onD=b=>{for(let i=0;i<b.length;i++)S.rx.push(b[i]);if(S.rx.length>4096)S.rx.splice(0,S.rx.length-4096);if(rxWake)rxWake()};
+  if(mode==="auto")mode=("serial"in navigator&&!/Android/i.test(navigator.userAgent))?"serial":"usb";
+  const useSer=mode==="serial",useSm2=mode==="sm2";
+  if(useSer&&!("serial"in navigator))throw new Error("เบราว์เซอร์นี้ไม่รองรับ Web Serial ใช้ Chrome หรือ Edge บนคอม");
+  if(!useSer&&!useSm2&&!("usb"in navigator))throw new Error("เบราว์เซอร์นี้ไม่รองรับ WebUSB ลองปุ่ม 'เชื่อมต่อผ่านพอร์ต COM' แทน");
+  S.ftdi=useSm2?new Sm2Link(onD):useSer?new SerialLink(onD):new Ftdi(onD);
   await S.ftdi.open();S.usb=true;S.ecuOk=false;
-  log("เชื่อมต่อ "+S.ftdi.name+" (bcdDevice 0x"+hex(S.ftdi.bcd,4)+") 10400 baud 8N1");
- }catch(e){S.usb=false;log("เชื่อมต่อ USB ไม่สำเร็จ: "+(e&&e.name?e.name+" - ":"")+(e&&e.message||e));usbHint(e)}
+  if(useSm2){S.echo=true;$("#o-cEcho").checked=true}   // SM2 เปิด LOOPBACK ไว้ จึงมี echo เหมือนสาย K-line จริง
+  log("เชื่อมต่อ "+S.ftdi.name+(useSer||useSm2?"":" (bcdDevice 0x"+hex(S.ftdi.bcd,4)+")")+" 10400 baud 8N1");
+ }catch(e){S.usb=false;log("เชื่อมต่อ USB ไม่สำเร็จ: "+(e&&e.name?e.name+" - ":"")+(e&&e.message||e));usbHint(e,mode)}
  render()}
-function usbHint(e){
+function usbHint(e,mode){
+ if(mode==="sm2"){log("ทางแก้ SM2: 1) ลงไดรเวอร์ Scanmatik แล้วเสียบ SM2  2) ดับเบิลคลิก start_sm2.bat แล้วใช้หน้าเว็บที่เด้งขึ้นมาเอง  3) ใช้ได้เฉพาะคอม Windows");return}
  const n=e&&e.name,w=/Windows/i.test(navigator.userAgent),a=/Android/i.test(navigator.userAgent);
- if(n==="NotFoundError")log("ทางแก้: ไม่ได้เลือกอุปกรณ์ในหน้าต่าง กดเชื่อมต่อใหม่แล้วเลือก FT232R");
- else if(n==="SecurityError")log(w?"ทางแก้ (Windows): ไดรเวอร์ FTDI ของ Windows จับสายอยู่ ใช้โปรแกรม Zadig เปลี่ยนไดรเวอร์ของ FT232R เป็น WinUSB แล้วปิดเปิด Chrome ใหม่"
+ if(n==="NotFoundError"){
+  log(mode==="serial"?"ทางแก้: ไม่มีพอร์ตให้เลือกหรือไม่ได้เลือก ตรวจว่าเสียบสายแล้ว และ Device Manager เห็น USB Serial Port (COM) ถ้าไม่เห็น ให้ลงไดรเวอร์ FTDI (ftdichip.com/drivers/vcp-drivers)"
+   :w?"ทางแก้ (Windows): หน้าต่างว่าง/ไม่เลือก = Windows ใช้ไดรเวอร์ COM จับสายอยู่ WebUSB จึงมองไม่เห็น ให้กดปุ่ม 'เชื่อมต่อผ่านพอร์ต COM' แทน หรือใช้ Zadig เปลี่ยนเป็น WinUSB"
+   :"ทางแก้: ไม่ได้เลือกอุปกรณ์ในหน้าต่าง กดเชื่อมต่อใหม่แล้วเลือก FT232R")}
+ else if(n==="SecurityError")log(w?"ทางแก้ (Windows): ไดรเวอร์ FTDI ของ Windows จับสายอยู่ กดปุ่ม 'เชื่อมต่อผ่านพอร์ต COM' แทน หรือใช้ Zadig เปลี่ยนเป็น WinUSB แล้วปิดเปิด Chrome ใหม่"
   :a?"ทางแก้ (Android): ถอดสาย OTG เสียบใหม่ กดอนุญาตเมื่อมี popup ปิดแอปอื่นที่ใช้ USB แล้วปิดเปิด Chrome ใหม่"
   :"ทางแก้: ระบบไม่ให้เข้าถึง USB (Linux ตั้งสิทธิ์ udev / ปิดโปรแกรมที่ใช้สายอยู่) แล้วถอดเสียบใหม่");
- else if(n==="NetworkError")log("ทางแก้: เปิดหรือยึดอุปกรณ์ไม่ได้ มีโปรแกรมอื่นใช้สายอยู่หรือสายหลวม ปิดโปรแกรมอื่น ถอดเสียบใหม่")}
-$("#o-bUsb").addEventListener("click",connectUsb);
+ else if(n==="NetworkError"||n==="InvalidStateError")log("ทางแก้: เปิดพอร์ตไม่ได้ มีโปรแกรมอื่นใช้สายอยู่ (เช่น โปรแกรมจูน, Serial Monitor) ปิดให้หมด แล้วถอดเสียบใหม่")}
+$("#o-bUsb").addEventListener("click",()=>connectUsb("usb"));
+$("#o-bSer").addEventListener("click",()=>connectUsb("serial"));
+$("#o-bSm2").addEventListener("click",()=>connectUsb("sm2"));
 $("#o-bEcu").addEventListener("click",connectEcu);
 $("#o-bId").addEventListener("click",async()=>{
  if(S.busy||!S.usb||!S.ecuOk)return;
@@ -2173,15 +2470,18 @@ $("#o-fIn").addEventListener("change",function(){
  fr.onload=()=>{S.bin=new Uint8Array(fr.result);S.name=f.name;S.pf=preflight(S.bin);log("เปิดไฟล์ "+f.name+" ("+S.bin.length+" ไบต์)");render()};
  fr.readAsArrayBuffer(f)});
 document.querySelectorAll("#o-mode .btn").forEach(b=>b.addEventListener("click",()=>{
- S.mode="sim";document.querySelectorAll("#o-mode .btn").forEach(x=>x.classList.toggle("act",x.dataset.m==="sim"));render()}));
+ if(S.running)return;
+ S.mode=b.dataset.m;document.querySelectorAll("#o-mode .btn").forEach(x=>x.classList.toggle("act",x.dataset.m===S.mode));
+ $("#o-cBat").checked=false;$("#o-cAck").checked=false;render()}));
 $("#o-cBat").addEventListener("change",render);$("#o-cAck").addEventListener("change",render);
 $("#o-bGo").addEventListener("click",startFlash);
 $("#o-bStop").addEventListener("click",()=>{S.abort=true;log("สั่งหยุด...")});
 window.addEventListener("beforeunload",e=>{if(S.running){e.preventDefault();e.returnValue=""}});
-if("usb"in navigator){navigator.usb.addEventListener("disconnect",()=>onUsbLost())}
-else{
- $("#o-nousb").textContent=location.hostname==="192.168.4.1"||/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)?"หน้านี้เปิดจากเกจ (http) Chrome ไม่ให้ใช้ WebUSB ให้ไปเปิดจากลิงก์ GitHub Pages (https) ของเว็บนี้แทน":"เบราว์เซอร์นี้ใช้ WebUSB ไม่ได้ ต้องใช้ Chrome บน Android และเปิดผ่าน https";
- $("#o-nousb").hidden=false;$("#o-bUsb").disabled=true}
+if("usb"in navigator)navigator.usb.addEventListener("disconnect",()=>onUsbLost());
+if("serial"in navigator)navigator.serial.addEventListener("disconnect",()=>onUsbLost());
+if(!("usb"in navigator)&&!("serial"in navigator)){
+ $("#o-nousb").textContent="เบราว์เซอร์นี้ใช้ WebUSB/Web Serial ไม่ได้ ต้องใช้ Chrome หรือ Edge (บน Android ต้องเปิดผ่าน https)";
+ $("#o-nousb").hidden=false}
 
 /* ---------------- ค่าสดผ่าน OTG ---------------- */
 const CH=[["rpm","รอบเครื่อง rpm"],["tps","TPS %"],["ect","น้ำหล่อเย็น °C"],["afr","AFR"],["bat","แบต V"],["spd","ความเร็ว km/h"],["iat","IAT °C"],["map","MAP kPa"],["inj","ระยะฉีด ms"],["ign","องศาไฟ °BTDC"],["tpsv","แรงดัน TPS V"]];
@@ -2198,20 +2498,28 @@ function lvRead(){
   if(!isFinite(t)||!isFinite(o))return;
   const n=parseInt(g("n").value,10)||1,m=parseFloat(g("m").value.replace(",","."));
   const a=parseFloat(g("a").value.replace(",","."));
-  nm[k]={t,o,n:Math.min(4,Math.max(1,n)),m:isFinite(m)?m:1,a:isFinite(a)?a:0,be:g("be").checked}});
- LV.map=nm;lvSave()}
+  nm[k]={t,o,n:Math.min(4,Math.max(1,n)),m:isFinite(m)?m:1,a:isFinite(a)?a:0,be:g("be").checked};
+  const q=LV.map[k];if(q&&q.t===t&&q.o===o)["chk","tmp","mx","mn","fn"].forEach(x=>{if(q[x]!==undefined)nm[k][x]=q[x]})});
+ LV.map=nm;try{localStorage.setItem("ktec_lsrc","custom")}catch(e){}lvSave()}
 $("#lvMap").addEventListener("change",lvRead);
-function lvTables(){const s=new Set([0x11,0x17]);Object.values(LV.map).forEach(m=>s.add(m.t));return[...s]}
+function lvTables(){
+ const used=new Set(Object.values(LV.map).map(m=>m.t));
+ if(used.size&&!(LV.tabs&&LV.tabs.length))return[...used];   // ตั้งช่องแล้ว: อ่านเฉพาะตารางที่ใช้จริง
+ const s=new Set([0x11,0x17]);(LV.tabs||[]).forEach(t=>s.add(t));used.forEach(t=>s.add(t));return[...s]}
 async function readRaw(t){
  const rq=[0x72,0x05,0x71,t,0];rq[4]=cks(rq,4);
- S.rx.length=0;await S.ftdi.write(rq);await waitTx(rq.length);
+ S.rx.length=0;await S.ftdi.write(rq);
  const t0=performance.now();
- while(performance.now()-t0<150){const i=findFrame(S.rx,0x02,t,true);if(i>=0)return S.rx.slice(i+4,i+S.rx[i+1]-1);await sleep(2)}
+ while(performance.now()-t0<150){const i=findFrame(S.rx,0x02,t,true);if(i>=0)return S.rx.slice(i+4,i+S.rx[i+1]-1);await rxWait(20)}
  return null}
 function lvDecode(){
  const v=[],ok=[];
  CH.forEach((c,i)=>{const m=LV.map[c[0]],d=m&&LV.raw[m.t];let x=null;
-  if(d&&m.o+m.n<=d.length){let r=0;for(let j=0;j<m.n;j++)r=m.be?r*256+d[m.o+j]:r+d[m.o+j]*Math.pow(256,j);x=r*m.m+m.a}
+  if(d&&m.o+m.n<=d.length&&!(m.chk!=null&&d[m.chk]===255)){
+   let r=0;for(let j=0;j<m.n;j++)r=m.be?r*256+d[m.o+j]:r+d[m.o+j]*Math.pow(256,j);
+   x=m.fn==="pcxAfr"?lvAfrPcx(r):r*m.m+m.a;
+   if(m.tmp&&!(r!==255&&r>10&&r<=200))x=null;
+   else{if(m.mx!=null&&x>m.mx)x=m.mx;if(m.mn!=null&&x<m.mn)x=m.mn}}
   v[i]=x==null?0:x;ok[i]=x==null?0:1});
  return{v,ok,l:1,sc:0}}
 function lvRawTxt(){
@@ -2239,23 +2547,126 @@ async function lvLoop(){
    else if(++LV.fail>=8){S.busy=false;S.ecuOk=false;render();lvStopUi("ECU ไม่ตอบ หยุดอ่านค่าสด กดต่อใหม่");return}
    if($("#lvDet").open)$("#lvRaw").textContent=lvRawTxt();
   }catch(e){}
-  S.busy=false;await sleep(30)}}
-$("#lvConn").addEventListener("click",async()=>{
+  S.busy=false;await sleep(0)}}
+async function lvStart(mode){
  const info=$("#lvInfo");
- if(!("usb"in navigator)){info.textContent="เบราว์เซอร์นี้ใช้ WebUSB ไม่ได้ ต้องใช้ Chrome บน Android และเปิดผ่านลิงก์ https";return}
+ if(mode!=="sm2"&&!("usb"in navigator)&&!("serial"in navigator)){info.textContent="เบราว์เซอร์นี้ใช้ WebUSB/Web Serial ไม่ได้ ต้องใช้ Chrome หรือ Edge";return}
  if(LV.on)return;
- if(!S.usb){info.textContent="เลือกสาย FTDI ในหน้าต่างที่เด้งขึ้น…";await connectUsb();if(!S.usb){info.textContent="ต่อสาย FTDI ไม่สำเร็จ (ดูบันทึกในแท็บ OTG)";return}}
+ if(!S.usb){info.textContent=mode==="sm2"?"กำลังต่อ SM2 ผ่าน sm2_bridge.py…":"เลือกสาย FTDI ในหน้าต่างที่เด้งขึ้น…";await connectUsb(mode);if(!S.usb){info.textContent="ต่อสาย FTDI ไม่สำเร็จ (ดูบันทึกในแท็บ OTG)";return}}
  if(!S.ecuOk){info.textContent="กำลังต่อ ECU… (เปิดกุญแจ ON)";await connectEcu()}
  if(!S.ecuOk){info.textContent="ต่อ ECU ไม่ได้ ตรวจสาย/สวิตช์กุญแจ แล้วลองใหม่";return}
- info.textContent="กำลังอ่านค่าสด…";lvLoop()});
+ try{await lvAutoProf()}catch(e){}
+ info.textContent="กำลังอ่านค่าสด… โปรไฟล์: "+$("#lvProf").selectedOptions[0].textContent;lvLoop()}
+$("#lvConn").addEventListener("click",()=>lvStart("auto"));
+$("#lvConnSm2").addEventListener("click",()=>lvStart("sm2"));
 $("#lvStop").addEventListener("click",()=>lvStopUi("หยุดอ่านค่าสดแล้ว"));
 $("#lvBase").addEventListener("click",()=>{LV.base={};Object.keys(LV.raw).forEach(k=>LV.base[k]=LV.raw[k].slice());$("#lvInfo").textContent="จดค่าฐานแล้ว เร่งเครื่องแล้วดูไบต์ที่มี *"});
 $("#lvCopy").addEventListener("click",async()=>{try{await navigator.clipboard.writeText(JSON.stringify(LV.map));$("#lvInfo").textContent="คัดลอกค่าตั้งแล้ว"}catch(e){prompt("คัดลอกข้อความนี้",JSON.stringify(LV.map))}});
 $("#lvPaste").addEventListener("click",()=>{const t=prompt("วางค่าตั้งที่คัดลอกไว้");if(!t)return;try{const o=JSON.parse(t);if(!o||typeof o!=="object")throw 0;LV.map=o;lvSave();lvBuild();$("#lvInfo").textContent="ใช้ค่าตั้งใหม่แล้ว"}catch(e){$("#lvInfo").textContent="ข้อความค่าตั้งไม่ถูกต้อง"}});
+/* ---------------- โปรไฟล์ตำแหน่งข้อมูลตามรุ่น (ถอดจากโค้ดเกจ KTEC_GAUGE_new123: kDecodeTable17 / kDecodePcx11 / kDecodePcx20) ----------------
+   o = ตำแหน่งไบต์ข้อมูล นับจากไบต์ข้อมูลตัวแรกของตาราง (= f[4] ในโค้ดเกจ)  chk = ไบต์นี้เป็น FF แปลว่าเซ็นเซอร์ไม่พร้อม  tmp = ตรวจช่วงอุณหภูมิ */
+function lvAfrPcx(raw){
+ const V=[0,0.02,0.028,0.042,0.098,0.351,0.6925,0.8,0.87,0.936,1.014],A=[20,18.7,18,17,16.1,15,14,13,12,11,10],v=raw*5/256.377;
+ if(v<=V[0])return A[0];if(v>=V[10])return A[10];
+ for(let i=1;i<11;i++)if(v<=V[i])return A[i-1]+(v-V[i-1])/(V[i]-V[i-1])*(A[i]-A[i-1]);return A[10]}
+const AFR_T17={t:0x20,o:0,n:1,m:-0.1779,a:20,mn:10,mx:20};      // O2 = ไบต์ 0 ของตาราง 20 (x2.5/128 V) -> AFR 20 ถึง 10 เชิงเส้น
+function lvProfile(name){
+ const T=name==="pcx"?0x11:0x17,g=(o,x)=>Object.assign({t:T,o:o,n:1,m:1,a:0,be:false},x||{});
+ const rpm=g(0,{n:2,be:true}),tps=g(3,{m:0.5,mx:100,chk:2}),spd=g(15);
+ if(name==="pcx")return{rpm,tps,tpsv:g(2,{m:5/256,chk:2}),ect:g(5,{a:-40,tmp:1}),iat:g(7,{a:-40,tmp:1}),map:g(9,{chk:8}),
+  bat:g(12,{m:0.1}),spd:g(13),inj:g(14,{n:2,be:true,m:0.004}),ign:g(16,{m:0.5,a:-64}),afr:{t:0x20,o:0,n:1,m:1,a:0,be:false,fn:"pcxAfr"}};
+ const L=name==="lead";
+ const r={rpm,tps,tpsv:g(2,{m:L?4.98/255:5/256,chk:2}),ect:g(L?9:5,{a:-40,tmp:1}),iat:g(7,{a:-40,tmp:1}),
+  bat:g(10,{m:0.1}),spd,inj:g(11,{n:2,be:true,m:L?0.004:0.00392}),ign:g(13,{m:0.5,a:-64}),afr:Object.assign({be:false},AFR_T17)};
+ if(!L)r.map=g(9,{chk:8});                       // LEAD: ไบต์ 12/13 ใช้เป็น ECT จึงไม่มี MAP
+ return r}
+function lvApplyProf(name){
+ LV.map=lvProfile(name);lvSave();try{localStorage.setItem("ktec_lsrc",name)}catch(e){}lvBuild();LV.raw={};LV.miss={}}
+try{LV.prof=localStorage.getItem("ktec_lprof")||"auto"}catch(e){LV.prof="auto"}
+$("#lvProf").value=LV.prof;
+$("#lvProf").addEventListener("change",e=>{
+ LV.prof=e.target.value;try{localStorage.setItem("ktec_lprof",LV.prof)}catch(_){}
+ if(LV.prof!=="auto"){lvApplyProf(LV.prof);$("#lvInfo").textContent="ใช้ตำแหน่งข้อมูลของโปรไฟล์ "+e.target.selectedOptions[0].textContent}
+ else{try{localStorage.setItem("ktec_lsrc","")}catch(_){}$("#lvInfo").textContent="จะตรวจรุ่นให้เองตอนต่อ ECU"}});
+async function lvAutoProf(){
+ let src="";try{src=localStorage.getItem("ktec_lsrc")||""}catch(e){}
+ if(LV.prof!=="auto"){if(src!==LV.prof&&src!=="custom")lvApplyProf(LV.prof);return}
+ if(src==="custom"&&Object.keys(LV.map).length)return;   // ผู้ใช้ตั้งเองไว้ ไม่ทับ
+ while(S.busy)await sleep(10);S.busy=true;let d=null;
+ try{d=await readRaw(0x11)}catch(e){}
+ S.busy=false;
+ const n=(d&&d.length>=20)?"pcx":"t17";                    // ตามเกจ: ตาราง 11 ยาวพอ = PCX ไม่งั้น = T17 (GIORNO/LEAD ต้องเลือกเอง)
+ if(src!==n)lvApplyProf(n);
+ log("ตรวจรุ่นอัตโนมัติ: "+(n==="pcx"?"PCX (ตาราง 11)":"WAVE / T17 (ถ้าเป็น GIORNO/LEAD ให้เลือกในช่องรุ่น)"))}
+
+/* ---------------- หาตำแหน่งข้อมูลอัตโนมัติจากค่าจริง ---------------- */
+LV.tabs=[];LV.samples=[];
+$("#lvFch").innerHTML=CH.map(c=>'<option value="'+c[0]+'">'+c[1]+'</option>').join("");
+const FM=[1,0.25,0.5,2,4,0.125,8,0.1,0.05,0.01,0.001,0.0625,0.75,0.390625,0.3921569,0.4,0.0196,0.0098,0.04,1/16.0,0.2,0.02,20,10,100,0.03125,0.0390625,0.1953125,0.390625,0.78125,25,0.00488];
+const FA=[0,-40,-30,-50,-48,-20,-10,10,20,30,40,50,-100,-128,-64];
+async function lvScanTables(){
+ const info=$("#lvInfo");
+ if(!S.usb||!S.ecuOk){info.textContent="ต่อ ECU ก่อน";return}
+ if(LV.on)lvStopUi("หยุดอ่านค่าสดเพื่อสแกนตาราง");
+ while(S.busy)await sleep(10);S.busy=true;LV.pause=true;LV.tabs=[];
+ try{
+  for(let t=0;t<256;t++){
+   if(t%8===0)info.textContent="สแกนตาราง "+hex(t)+" / FF ... พบ "+LV.tabs.length;
+   const d=await readRaw(t);if(d&&d.length){LV.tabs.push(t);LV.raw[t]=d}
+   await sleep(5)}
+  log("สแกนตาราง: ECU ตอบ "+LV.tabs.length+" ตาราง -> "+LV.tabs.map(t=>hex(t)+"("+LV.raw[t].length+")").join(" "));
+  info.textContent="สแกนเสร็จ ECU ตอบ "+LV.tabs.length+" ตาราง: "+LV.tabs.map(t=>hex(t)).join(" ");
+ }catch(e){info.textContent="สแกนไม่สำเร็จ: "+(e&&e.message||e)}
+ S.busy=false;LV.pause=false;
+ if($("#lvDet").open)$("#lvRaw").textContent=lvRawTxt()}
+$("#lvScan").addEventListener("click",lvScanTables);
+function lvCands(ch,smp){
+ const out=[];
+ const tabs=Object.keys(smp[0].tb).map(Number);
+ for(const t of tabs){const d0=smp[0].tb[t];
+  for(let o=0;o<d0.length;o++)for(const n of [1,2])for(const be of(n===1?[false]:[false,true])){
+   if(o+n>d0.length)continue;
+   for(let mi=0;mi<FM.length;mi++)for(let ai=0;ai<FA.length;ai++){
+    const m=FM[mi],a=FA[ai];let ok=true;
+    for(const sp of smp){const d=sp.tb[t];if(!d||o+n>d.length){ok=false;break}
+     let r=0;for(let j=0;j<n;j++)r=be?r*256+d[o+j]:r+d[o+j]*Math.pow(256,j);
+     const x=r*m+a,tol=Math.max(Math.abs(sp.v)*0.03,m*1.01);
+     if(Math.abs(x-sp.v)>tol){ok=false;break}}
+    if(ok)out.push({t,o,n,be,m,a,sc:mi*20+ai+(n-1)*5})}}}
+ out.sort((x,y)=>x.sc-y.sc);return out}
+function lvFshow(){
+ const el=$("#lvFres"),ch=$("#lvFch").value,sm=LV.samples.filter(x=>x.ch===ch);
+ if(!sm.length){el.textContent="ยังไม่มีตัวอย่างของช่องนี้";return}
+ const c=lvCands(ch,sm);
+ if(!c.length){el.textContent="เก็บแล้ว "+sm.length+" ตัวอย่าง แต่ไม่พบตำแหน่งที่ตรง (ค่าที่พิมพ์ตรงกับที่ ECU ใช้จริงไหม หรือสูตรของรุ่นนี้ไม่อยู่ในที่ระบบลอง) ลองล้างแล้วเก็บใหม่";return}
+ const top=c.slice(0,6);LV.cand=top;
+ el.innerHTML="เก็บแล้ว "+sm.length+" ตัวอย่าง พบ "+c.length+" ตำแหน่งที่เป็นไปได้"+(sm.length<2?" (เก็บอีกครั้งตอนค่าต่างกันจะแคบลง)":"")+"<br>"+top.map((x,i)=>
+  '<button class="btn" data-ci="'+i+'" type="button" style="margin:3px 4px 0 0">ใช้: ตาราง '+hex(x.t)+' ไบต์ '+x.o+' x'+x.n+(x.be?" BE":"")+' ×'+(+x.m.toFixed(5))+(x.a?(x.a>0?" +":" ")+x.a:"")+'</button>').join("")}
+$("#lvFadd").addEventListener("click",async()=>{
+ const info=$("#lvInfo"),v=parseFloat($("#lvFval").value.replace(",","."));
+ if(!isFinite(v)){info.textContent="พิมพ์ค่าจริงเป็นตัวเลขก่อน";return}
+ if(!S.usb||!S.ecuOk){info.textContent="ต่อ ECU ก่อน";return}
+ if(LV.on)lvStopUi("หยุดอ่านค่าสดเพื่อเก็บตัวอย่าง");
+ while(S.busy)await sleep(10);S.busy=true;LV.pause=true;
+ try{
+  const ts=LV.tabs.length?LV.tabs:[0x11,0x17],tb={};
+  for(const t of ts){const d=await readRaw(t);if(d&&d.length){tb[t]=d.slice();LV.raw[t]=d}}
+  if(!Object.keys(tb).length)info.textContent="ECU ไม่ตอบ ลองกด สแกนตารางที่ ECU ตอบ ก่อน";
+  else{LV.samples.push({ch:$("#lvFch").value,v,tb});info.textContent="เก็บตัวอย่างแล้ว";lvFshow()}
+ }catch(e){info.textContent="เก็บตัวอย่างไม่สำเร็จ"}
+ S.busy=false;LV.pause=false});
+$("#lvFclr").addEventListener("click",()=>{const ch=$("#lvFch").value;LV.samples=LV.samples.filter(x=>x.ch!==ch);$("#lvFres").textContent="ล้างตัวอย่างของช่องนี้แล้ว"});
+$("#lvFch").addEventListener("change",lvFshow);
+$("#lvFres").addEventListener("click",e=>{
+ const b=e.target.closest("[data-ci]");if(!b||!LV.cand)return;
+ const x=LV.cand[+b.dataset.ci],ch=$("#lvFch").value;
+ LV.map[ch]={t:x.t,o:x.o,n:x.n,m:+x.m.toFixed(6),a:x.a,be:x.be};lvSave();lvBuild();
+ $("#lvInfo").textContent="ตั้งช่องนี้แล้ว กด ต่อสาย OTG + ECU เพื่อดูค่าสด (ถ้าอ่านค่าสดอยู่แล้วจะเปลี่ยนทันที)"});
+
 lvBuild();
 // Table display controls: visual zoom only; never changes table data or axes.
 var tableViewMode="2d";
-function applyTableView(){var z=Number($("#tableZoom").value||100)/100;document.documentElement.style.setProperty("--ktec-table-zoom",String(z));$("#tableZoomLabel").textContent=Math.round(z*100)+"%";var is3=tableViewMode==="3d",both=tableViewMode==="both";$("#t-wrap").hidden=is3;$("#t-3d-wrap").hidden=!is3&&!both;$("#viewBoth").classList.toggle("act",both);$("#view2d").classList.toggle("act",!is3&&!both);$("#view3d").classList.toggle("act",is3);if((is3||both)&&window.ktecDraw3d)ktecDraw3d()}
+function applyTableView(){var z=Number($("#tableZoom").value||100)/100;document.documentElement.style.setProperty("--ktec-table-zoom",String(z));$("#tableZoomLabel").textContent=Math.round(z*100)+"%";var is3=tableViewMode==="3d",both=tableViewMode==="both";$("#t-wrap").hidden=is3;$("#t-3d-wrap").hidden=!is3&&!both;$("#viewBoth").classList.toggle("act",both);$("#view2d").classList.toggle("act",!is3&&!both);$("#view3d").classList.toggle("act",is3);if((is3||both)&&window.ktecDraw3d)ktecDraw3d();if(!is3)setTimeout(function(){var e=document.getElementById("tfit");if(e)e.dispatchEvent(new Event("change"))},0)}
 $("#tableZoom").addEventListener("input",applyTableView);
 $("#viewBoth").addEventListener("click",function(){tableViewMode="both";applyTableView()});
 $("#view2d").addEventListener("click",function(){tableViewMode="2d";applyTableView()});
@@ -2267,7 +2678,372 @@ $("#dtcRead").addEventListener("click",function(){
  $("#dtcStatus").textContent="การเชื่อมต่อปัจจุบันยืนยันได้เฉพาะการอ่านตารางและ ID กล่อง ยังไม่มีโปรไฟล์คำสั่ง DTC ที่ตรวจสอบแล้วสำหรับ ID นี้ จึงยังไม่ส่งคำสั่งอ่านที่อาจไม่ตรงรุ่น";
 });
 $("#dtcClearList").addEventListener("click",function(){$("#dtcList").innerHTML='<div class="empty">ล้างรายการบนหน้าจอแล้ว (ไม่ได้ลบโค้ดใน ECU)</div>';$("#dtcStatus").textContent="ล้างเฉพาะรายการแสดงผลแล้ว"});
+
+/* ---------------- อ่านหน่วยความจำ ECU เป็นไฟล์ (ทดลอง อ่านอย่างเดียว) ---------------- */
+const DM={run:false,abort:false,buf:null,miss:0,addr:0,name:"ecu_dump.bin"};
+function dmMsg(t){$("#dm-msg").textContent=t}
+function dmFrame(a,n){const f=[0x72,0x07,0x72,(a>>8)&255,a&255,n,0];f[6]=cks(f,6);return f}
+/* โปรไฟล์ตามขนาดไฟล์ ECU: frame(addr,n) ต้องคืนเฟรมพร้อม checksum
+   64 KB ใช้คำสั่งอ่าน 16 บิตเดิม ส่วน 256/384 KB ต้องใช้คำสั่งอ่านแอดเดรส 24 บิตที่ตรวจสอบแล้ว
+   (ยังเป็น null จึงถูกล็อก ใส่ได้ที่ window.ktecDumpProfile[256|384]=function(addr,n){...return frame}) */
+const DM_PROF={64:{size:0x10000,max:0x10000,frame:dmFrame},48:{size:0xC000,max:0xC000,frame:dmFrame},256:{size:0x40000,max:0x40000,frame:null},384:{size:0x60000,max:0x60000,frame:null}};
+window.ktecDumpProfile=new Proxy({},{set(_,k,v){if(DM_PROF[k])DM_PROF[k].frame=(typeof v==="function"?v:null);return true}});
+function dmProf(){return DM_PROF[+$("#dm-fs").value]||DM_PROF[64]}
+async function dmBlock(a,n,raw){
+ for(let t=0;t<3;t++){
+  if(DM.abort)return null;
+  if(await talk((DM.prof||DM_PROF[64]).frame(a,n),0)&&S.rep.length>=n+5){if(raw)raw.rep=S.rep.slice();return S.rep.slice(S.rep.length-1-n,S.rep.length-1)}
+  await sleep(15)}
+ return null}
+function dmParams(){
+ const a=parseInt($("#dm-addr").value.replace(/^0x/i,""),16),sz=+$("#dm-size").value,bs=+$("#dm-blk").value;
+ const fs=+$("#dm-fs").value,pr=dmProf();
+ if(!pr.frame)return{err:"ไฟล์ "+fs+" KB ต้องใช้คำสั่งอ่านแอดเดรส 24 บิตผ่าน kernel ยังไม่มีลำดับคำสั่งที่ตรวจสอบแล้วในหน้านี้ จึงยังไม่ส่งอะไรไปที่ ECU"};
+ if(!isFinite(a)||a<0)return{err:"แอดเดรสเริ่มต้นไม่ถูกต้อง (เลขฐาน 16)"};
+ const sz2=fs>64?pr.size:sz;
+ if(a+sz2>pr.max)return{err:"แอดเดรสเริ่ม + ขนาด ต้องไม่เกิน 0x"+pr.max.toString(16).toUpperCase()};
+ DM.prof=pr;
+ return{a,sz:sz2,bs}}
+function dmReady(){if(!S.usb||!S.ecuOk){dmMsg("ยังไม่ได้ต่อ ECU ผ่าน OTG");return false}if(DM.run||S.running)return false;return true}
+async function dmGrab(){LV.pause=true;while(S.busy)await sleep(10);S.busy=true}
+function dmRelease(){S.busy=false;LV.pause=false}
+$("#dm-probe").addEventListener("click",async()=>{
+ if(!dmReady())return;const p=dmParams();if(p.err){dmMsg(p.err);return}
+ await dmGrab();DM.run=true;DM.abort=false;dmMsg("กำลังทดสอบอ่าน...");
+ try{
+  const addrs=[...new Set([0,p.a])],out=[];
+  for(const a of addrs){const raw={},d=await dmBlock(a,8,raw);
+   const hx=x=>x.map(v=>hex(v)).join(" ");
+   log("ทดสอบอ่านที่ 0x"+hex(a,4)+": "+(d?"ตอบ "+hx(raw.rep):"ไม่ตอบ/ตอบผิดรูปแบบ"));
+   out.push(d?"0x"+hex(a,4)+" = "+hx(d):"0x"+hex(a,4)+" ไม่ตอบ")}
+  dmMsg("ผลทดสอบ: "+out.join(" · ")+" (ตรวจว่าไม่ใช่ FF/00 ทั้งหมด และตรงกับที่คาด ก่อนเริ่มอ่านจริง)");
+ }catch(e){dmMsg("ทดสอบไม่สำเร็จ: "+(e&&e.message||e))}
+ DM.run=false;dmRelease()});
+async function dmPass(buf,p,label,cmp){
+ let bad=0,fails=0,ff=0;const t0=performance.now();
+ for(let off=0;off<p.sz;off+=p.bs){
+  if(DM.abort)return{aborted:true,bad};
+  const n=Math.min(p.bs,p.sz-off),d=await dmBlock(p.a+off,n);
+  if(!d){fails++;bad++;if(fails===1)ff=p.a+off;if(fails>=8)return{dead:true,bad,at:ff};if(!cmp)buf.fill(0xFF,off,off+n);continue}
+  fails=0;
+  if(cmp){for(let i=0;i<n;i++)if(buf[off+i]!==d[i]){bad++;break}}else buf.set(d,off);
+  const done=Math.min(p.sz,off+n),el=(performance.now()-t0)/1000;
+  $("#dm-bar").style.width=(done*100/p.sz).toFixed(1)+"%";
+  $("#dm-num").textContent=label+" "+(done*100/p.sz).toFixed(1)+"% · "+done+" / "+p.sz+" ไบต์ · "+Math.round(done/Math.max(el,.001))+" B/s"}
+ return{bad}}
+$("#dm-go").addEventListener("click",async()=>{
+ if(!dmReady())return;const p=dmParams();if(p.err){dmMsg(p.err);return}
+ await dmGrab();DM.run=true;DM.abort=false;DM.buf=null;$("#dm-dl").disabled=true;$("#dm-tune").disabled=true;$("#dm-stop").hidden=false;$("#dm-go").disabled=true;
+ await lock(true);log("=== อ่าน ECU 0x"+hex(p.a,4)+" ขนาด "+p.sz+" ไบต์ ===");
+ try{
+  const buf=new Uint8Array(p.sz);
+  let r=await dmPass(buf,p,"อ่านรอบ 1",false);
+  if(r.aborted)dmMsg("หยุดแล้ว (ยังไม่ได้ไฟล์)");
+  else if(r.dead)dmMsg("ECU หยุดตอบตั้งแต่แอดเดรส 0x"+hex(r.at,4)+" (ติดกัน 8 บล็อก) ยกเลิก · ช่วงก่อนหน้านี้อ่านได้ ลองเริ่มที่แอดเดรสอื่น (เช่น 8000) หรือกด สแกนช่วงที่อ่านได้ · ถ้า ECU เงียบไปเลย กด ต่อ ECU ใหม่");
+  else{
+   let note="";
+   if($("#dm-ver").checked){const v=await dmPass(buf,p,"ตรวจซ้ำ",true);
+    if(v.aborted){dmMsg("หยุดแล้ว");throw 0}
+    note=v.dead?" · ตรวจซ้ำไม่สำเร็จ (ECU หยุดตอบ)":(v.bad?" · ตรวจซ้ำไม่ตรง "+v.bad+" บล็อก (ค่าเปลี่ยนระหว่างอ่าน หรืออ่านผิด)":" · ตรวจซ้ำตรงทั้งหมด")}
+   DM.buf=buf;DM.addr=p.a;DM.miss=r.bad;DM.crc=crc32(buf);
+   const allSame=buf.every(v=>v===buf[0]);
+   DM.name="ecu_"+(($("#o-idIn").value||"").replace(/[^0-9A-Fa-f]/g,"").slice(0,10)||"dump")+"_"+hex(p.a,4)+"_"+(p.sz>>10)+"KB.bin";
+   dmMsg("อ่านเสร็จ "+p.sz+" ไบต์ · CRC32 "+hex(crc32(buf),8)+(r.bad?" · อ่านไม่ได้ "+r.bad+" บล็อก (เติม FF)":"")+(allSame?" · ข้อมูลเหมือนกันทั้งหมด ผิดปกติ":"")+note+" · ห้ามนำไปอัดกลับจนกว่าจะเทียบกับไฟล์ต้นฉบับ");
+   $("#dm-dl").disabled=false;$("#dm-tune").disabled=false;log("อ่าน ECU เสร็จ CRC32 "+hex(crc32(buf),8))}
+ }catch(e){if(e)dmMsg("อ่านไม่สำเร็จ: "+(e&&e.message||e))}
+ await lock(false);DM.run=false;dmRelease();$("#dm-stop").hidden=true;$("#dm-go").disabled=false});
+$("#dm-stop").addEventListener("click",()=>{DM.abort=true});
+$("#dm-scan").addEventListener("click",async()=>{
+ if(!dmReady())return;
+ await dmGrab();DM.run=true;DM.abort=false;$("#dm-stop").hidden=false;$("#dm-scan").disabled=true;$("#dm-go").disabled=true;$("#dm-full").disabled=true;
+ const hx=x=>x.map(v=>hex(v)).join(" "),good=[],bad={};let done=0;
+ try{
+  for(let a=0;a<0x10000&&!DM.abort;a+=0x100){
+   let okb=false,raw="(ไม่ตอบ)";
+   if(await talk(dmFrame(a,4),0)){raw=hx(S.rep);okb=S.rep.length>=9}
+   good.push(okb);if(!okb){bad[raw]=(bad[raw]||0)+1;if(Object.keys(bad).length<=3&&bad[raw]===1)log("สแกน 0x"+hex(a,4)+" ตอบ: "+raw)}
+   done=a+0x100;$("#dm-bar").style.width=(done*100/0x10000).toFixed(1)+"%";$("#dm-num").textContent="สแกน 0x"+hex(a,4)+" / FFFF";
+   await sleep(10)}
+  const rg=[];let st=-1;
+  for(let i=0;i<=good.length;i++){if(i<good.length&&good[i]){if(st<0)st=i}else if(st>=0){rg.push("0x"+hex(st*256,4)+"–0x"+hex(i*256-1,4));st=-1}}
+  const alive=await pingEcu();
+  dmMsg((DM.abort?"หยุดสแกนที่ 0x"+hex(done,4)+" · ":"")+(rg.length?"ช่วงที่ ECU ตอบ: "+rg.join(", "):"ไม่มีช่วงไหนตอบ")+" · ที่เหลือตอบแบบ: "+(Object.keys(bad).slice(0,3).join(" | ")||"-")+" · หลังสแกน ECU "+(alive?"ยังตอบปกติ":"ไม่ตอบ (กด ต่อ ECU ใหม่)"));
+  log("สแกนช่วงอ่านได้: "+(rg.join(", ")||"ไม่มี"));
+ }catch(e){dmMsg("สแกนไม่สำเร็จ: "+(e&&e.message||e))}
+ DM.run=false;dmRelease();$("#dm-stop").hidden=true;$("#dm-scan").disabled=false;$("#dm-go").disabled=false;$("#dm-full").disabled=false});
+$("#dm-full").addEventListener("click",()=>{if(DM.run)return;$("#dm-addr").value="0000";$("#dm-size").value=(+$("#dm-fs").value===48?"49152":"65536");$("#dm-blk").value="32";$("#dm-go").click()});
+function dmFsUi(){const fs=+$("#dm-fs").value,pr=dmProf();
+ $("#dm-full").textContent="อ่านเต็ม "+fs+" KB (0000–"+(pr.max-1).toString(16).toUpperCase()+")";
+ $("#dm-size").disabled=fs>64;
+ dmMsg(pr.frame?"":"ขนาด "+fs+" KB ยังล็อกอยู่ ต้องมีคำสั่งอ่านแอดเดรส 24 บิตที่ตรวจสอบแล้วก่อน")}
+$("#dm-fs").addEventListener("change",dmFsUi);dmFsUi();
+$("#dm-hi48").addEventListener("click",()=>{if(DM.run)return;$("#dm-fs").value="48";dmFsUi();$("#dm-addr").value="4000";$("#dm-size").value="32768";$("#dm-blk").value="32";$("#dm-go").click()});
+$("#dm-hi").addEventListener("click",()=>{if(DM.run)return;$("#dm-fs").value="64";$("#dm-addr").value="8000";$("#dm-size").value="32768";$("#dm-blk").value="32";$("#dm-go").click()});
+$("#dm-tune").addEventListener("click",()=>{if(!DM.buf)return;if(window.ktecTuneLoad)ktecTuneLoad(DM.buf.slice(0).buffer,DM.name)});
+$("#dm-dl").addEventListener("click",()=>{if(!DM.buf)return;
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([DM.buf],{type:"application/octet-stream"}));a.download=DM.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)});
 window.ktecOtg={load:function(bin,name){S.bin=bin;S.name=name;S.pf=preflight(bin);log("รับไฟล์จากแท็บจูน: "+name+" ("+bin.length+" ไบต์)");render()}};
+/* ---------- CAN bus ผ่าน ELM327 (OBD-II) อ่านอย่างเดียว ---------- */
+const CAN={link:null,buf:"",on:false,wake:null,loopId:0,
+ defs:[
+  {id:"rpm",ch:0,name:"รอบเครื่อง",unit:"rpm",mode:"01",pid:"0C",n:2,eq:"X / 4",use:true},
+  {id:"tps",ch:1,name:"TPS",unit:"%",mode:"01",pid:"11",n:1,eq:"X*100/255",use:true},
+  {id:"adv",ch:9,name:"องศาไฟ",unit:"°",mode:"01",pid:"0E",n:1,eq:"X / 2 - 64",use:true},
+  {id:"map",ch:7,name:"MAP",unit:"kPa",mode:"01",pid:"0B",n:1,eq:"X *0.7734375",use:true},
+  {id:"ect",ch:2,name:"น้ำหล่อเย็น",unit:"°C",mode:"01",pid:"05",n:1,eq:"X - 40",use:false},
+  {id:"iat",ch:6,name:"IAT",unit:"°C",mode:"01",pid:"0F",n:1,eq:"X - 40",use:false},
+  {id:"spd",ch:5,name:"ความเร็ว",unit:"km/h",mode:"01",pid:"0D",n:1,eq:"X",use:false},
+  {id:"bat",ch:4,name:"แบตเตอรี่",unit:"V",mode:"01",pid:"42",n:2,eq:"X / 1000",use:false},
+  {id:"load",ch:-1,name:"โหลดเครื่อง",unit:"%",mode:"01",pid:"04",n:1,eq:"X*100/255",use:false},
+  {id:"stft",ch:-1,name:"ปรับน้ำมันระยะสั้น STFT",unit:"%",mode:"01",pid:"06",n:1,eq:"X*100/128 - 100",use:false},
+  {id:"ltft",ch:-1,name:"ปรับน้ำมันระยะยาว LTFT",unit:"%",mode:"01",pid:"07",n:1,eq:"X*100/128 - 100",use:false},
+  {id:"frp",ch:-1,name:"แรงดันน้ำมันเชื้อเพลิง",unit:"kPa",mode:"01",pid:"0A",n:1,eq:"X*3",use:false},
+  {id:"maf",ch:-1,name:"MAF",unit:"g/s",mode:"01",pid:"10",n:2,eq:"X / 100",use:false},
+  {id:"lam",ch:-1,name:"แลมบ์ดา (ไวด์แบนด์)",unit:"λ",mode:"01",pid:"24",n:4,eq:"(X/65536)*2/65536",use:false},
+  {id:"baro",ch:-1,name:"ความดันบรรยากาศ",unit:"kPa",mode:"01",pid:"33",n:1,eq:"X",use:false},
+  {id:"atps",ch:-1,name:"คันเร่งสัมบูรณ์ B",unit:"%",mode:"01",pid:"47",n:1,eq:"X*100/255",use:false},
+  {id:"oilt",ch:-1,name:"อุณหภูมิน้ำมันเครื่อง",unit:"°C",mode:"01",pid:"5C",n:1,eq:"X - 40",use:false}]};
+const CAN_CH={"0C":0,"11":1,"0E":9,"0B":7,"05":2,"0F":6,"0D":5,"42":4};
+var canLog=function(t){const e=$("#can-log");e.textContent+=t+"\n";if(e.textContent.length>6000)e.textContent=e.textContent.slice(-4000);e.scrollTop=e.scrollHeight};
+function canFn(eq){if(!/^[0-9Xx+\-*\/(). ]+$/.test(eq))return null;try{return new Function("X","return ("+eq+")")}catch(e){return null}}
+function canRender(){
+ const t=$("#can-defs");let h='<tr><th></th><th align="left">ค่า</th><th align="left">คำสั่ง</th><th align="left">สูตร (X = ค่าดิบ)</th><th align="right">ค่าล่าสุด</th></tr>';
+ CAN.defs.forEach((d,i)=>{h+='<tr><td><input type="checkbox" data-i="'+i+'" '+(d.use?"checked":"")+'></td><td>'+d.name+' <small>'+d.unit+'</small></td><td><code>'+d.mode+d.pid+'</code></td><td><input data-e="'+i+'" value="'+d.eq+'" style="width:9em"></td><td align="right" id="can-v'+i+'">'+(d.val==null?"-":d.val.toFixed(2))+'</td></tr>'});
+ t.innerHTML=h;
+ t.querySelectorAll("input[data-i]").forEach(c=>c.addEventListener("change",()=>{CAN.defs[+c.dataset.i].use=c.checked}));
+ t.querySelectorAll("input[data-e]").forEach(c=>c.addEventListener("change",()=>{const d=CAN.defs[+c.dataset.e];if(canFn(c.value)){d.eq=c.value}else{c.value=d.eq;canLog("สูตรไม่ถูกต้อง ใช้ได้เฉพาะตัวเลข X + - * / ( )")}}))}
+function canWaitRx(ms){return new Promise(res=>{const t=setTimeout(()=>{CAN.wake=null;res()},ms);CAN.wake=()=>{clearTimeout(t);CAN.wake=null;res()}})}
+async function elm(cmd,tmo){
+ CAN.buf="";await CAN.link.write(Array.from(new TextEncoder().encode(cmd+"\r")));
+ const t0=performance.now();
+ while(performance.now()-t0<tmo&&CAN.on!==null){if(CAN.buf.indexOf(">")>=0)break;await canWaitRx(30)}
+ return CAN.buf.replace(/>/g,"").split(/[\r\n]+/).map(x=>x.trim()).filter(x=>x&&x!==cmd)}
+function canBytes(h){const o=[];for(let i=0;i+1<h.length;i+=2)o.push(parseInt(h.substr(i,2),16));return o}
+async function canConnect(mode){
+ if(CAN.on||CAN.link)return;
+ if(S.usb){canLog("ตัดการเชื่อมต่อ K-line ก่อน (ใช้สายได้ทีละแบบ)");return}
+ const baud=+$("#can-baud").value;
+ try{
+  if(mode==="serial"&&!("serial"in navigator))throw new Error("เบราว์เซอร์นี้ไม่รองรับ Web Serial");
+  if(mode!=="serial"&&!("usb"in navigator))throw new Error("เบราว์เซอร์นี้ไม่รองรับ WebUSB");
+  const onD=b=>{for(let i=0;i<b.length;i++)CAN.buf+=String.fromCharCode(b[i]);if(CAN.buf.length>4096)CAN.buf=CAN.buf.slice(-2048);if(CAN.wake)CAN.wake()};
+  const lk=mode==="serial"?new SerialLink(onD):new Ftdi(onD);
+  if(mode==="serial")lk.baud=baud;
+  await lk.open();
+  if(mode!=="serial")await lk.setBaud(baud);
+  CAN.link=lk;CAN.on=true;
+  $("#can-usb").disabled=true;$("#can-ser").disabled=true;$("#can-tact").disabled=true;$("#can-sm2").disabled=true;$("#can-stop").hidden=false;
+  canLog("เชื่อมต่อ "+lk.name+" ที่ "+baud+" baud");
+  let r=await elm("ATZ",3000);canLog("ATZ: "+(r.join(" | ")||"(ไม่ตอบ)"));
+  if(!r.length){canLog("อะแดปเตอร์ไม่ตอบ ลองเปลี่ยนความเร็วพอร์ต (38400 / 115200)");await canStop();return}
+  for(const c of["ATE0","ATL0","ATS0","ATH0","ATAT1"])await elm(c,1000);
+  await elm("ATSP"+$("#can-proto").value,1000);
+  canLog("ตรวจการเชื่อม CAN (0100) อาจใช้เวลาหลายวินาที...");
+  r=await elm("0100",9000);canLog("0100: "+(r.join(" | ")||"(ไม่ตอบ)"));
+  if(r.some(x=>/UNABLE|ERROR|STOPPED|BUS/i.test(x)))canLog("ELM327 ต่อรถไม่สำเร็จ ตรวจว่าเปิดสวิตช์กุญแจแล้ว สายต่อถูกขา และลองเลือกโปรโตคอลเอง");
+  canLoop()}
+ catch(e){canLog("เชื่อมต่อไม่สำเร็จ: "+(e&&e.name?e.name+" - ":"")+(e&&e.message||e));try{if(CAN.link)await CAN.link.close()}catch(_){}CAN.link=null;CAN.on=false;$("#can-usb").disabled=false;$("#can-ser").disabled=false;$("#can-tact").disabled=false;$("#can-sm2").disabled=false;$("#can-stop").hidden=true}}
+async function canLoop(){
+ const id=++CAN.loopId;let any=0;
+ while(CAN.on&&id===CAN.loopId){
+  const act=CAN.defs.filter(d=>d.use);
+  if(!act.length){await sleep(200);continue}
+  const v=[],ok=[];for(let i=0;i<11;i++){v[i]=0;ok[i]=0}
+  let got=0;
+  for(const d of act){
+   if(!CAN.on||id!==CAN.loopId)return;
+   const i=CAN.defs.indexOf(d);let ln,data=null;
+   if(CAN.tact||CAN.sm2){const q=await(CAN.sm2?sm2Query(d):txQuery(d));data=q.data||null;ln=q.err?[q.err]:[]}
+   else{ln=await elm(d.mode+d.pid+($("#can-fast").checked?"1":""),1200);
+   const head=((parseInt(d.mode,16)+64).toString(16)+d.pid).toUpperCase();
+   for(const l of ln){const t=l.replace(/\s/g,"").toUpperCase();const k=t.indexOf(head);if(k>=0&&/^[0-9A-F]+$/.test(t)){data=canBytes(t.slice(k+head.length));break}}}
+   if(data&&data.length>=d.n){
+    let X=0;for(let j=0;j<d.n;j++)X=X*256+data[j];
+    const fn=canFn(d.eq),x=fn?fn(X):null;
+    if(x!=null&&isFinite(x)){d.val=x;d.miss=0;if(d.ch>=0){v[d.ch]=x;ok[d.ch]=1;got++}const c=$("#can-v"+i);if(c)c.textContent=x.toFixed(2)}}
+   else{d.miss=(d.miss||0)+1;if(d.miss===5){canLog(d.name+" ("+d.mode+d.pid+"): ไม่มีข้อมูล "+(ln.join(" | ")||"")+" อาจกล่องไม่รองรับ PID นี้")}}}
+  if(got&&window.ktecLive){window.ktecLiveOn=true;ktecLive.apply({v,ok,l:1,sc:0});any=1}}}
+async function canStop(){
+ if(CAN.tact&&CAN.link&&CAN.on){try{await txCmd("atc5",null,600)}catch(_){}}
+ CAN.on=false;CAN.loopId++;
+ try{if(CAN.link)await CAN.link.close()}catch(_){}
+ CAN.link=null;CAN.tact=false;CAN.sm2=false;window.ktecLiveOn=false;if(window.ktecLive)ktecLive.clear();
+ $("#can-usb").disabled=false;$("#can-ser").disabled=false;$("#can-tact").disabled=false;$("#can-sm2").disabled=false;$("#can-stop").hidden=true;canLog("ตัดการเชื่อมต่อแล้ว")}
+function adxParse(txt){
+ const x=new DOMParser().parseFromString(txt,"text/xml");
+ if(x.querySelector("parsererror"))throw new Error("อ่านไฟล์ .adx ไม่ได้ (ไม่ใช่ XML ที่ถูกต้อง)");
+ const sends={},listenById={},listenByHash={},rep2req={};
+ x.querySelectorAll("ADXCSENDCOMMAND").forEach(e=>{const b=e.querySelector("bytestring");if(b)sends[e.getAttribute("id")]=b.textContent.trim()});
+ x.querySelectorAll("ADXCLISTENPACKET").forEach(e=>{listenById[e.getAttribute("id")]=1;listenByHash[e.getAttribute("idhash")]=e.getAttribute("id")});
+ x.querySelectorAll("ADXMACRO").forEach(m=>{const n=[...m.querySelectorAll("NODE")].map(e=>e.getAttribute("commandID"));for(let i=0;i+1<n.length;i++){if(sends[n[i]]&&listenById[n[i+1]])rep2req[n[i+1]]=n[i];else if(listenById[n[i]]&&sends[n[i+1]])rep2req[n[i]]=n[i+1]}});   /* บางมาโคร (เช่น MAP ในไฟล์นี้) เรียงคำตอบก่อนคำขอ */
+ const out=[];
+ x.querySelectorAll("ADXVALUE").forEach(e=>{
+  const ph=e.querySelector("parentcmdidhash"),rid=ph&&listenByHash[ph.textContent.trim()],req=rid&&rep2req[rid],hs=req&&sends[req];if(!hs)return;
+  let asc="";for(let i=0;i+1<hs.length;i+=2)asc+=String.fromCharCode(parseInt(hs.substr(i,2),16));
+  const m=/^M([0-9A-F]{2})P([0-9A-F]{2})S([0-9A-F]{2})/i.exec(asc);if(!m)return;
+  const mt=e.querySelector("MATH"),eq=mt?mt.getAttribute("equation"):"X",un=e.querySelector("units"),pid=m[2].toUpperCase();
+  if(!canFn(eq))return;
+  out.push({id:e.getAttribute("id"),ch:CAN_CH[pid]!=null?CAN_CH[pid]:-1,name:(e.getAttribute("title")||e.getAttribute("id")).replace(/\s+/g," ").trim(),unit:un?un.textContent.trim():"",mode:m[1].toUpperCase(),pid,n:parseInt(m[3],16)||1,eq,use:true})});
+ const bd=x.querySelector("ADXHEADER baud");
+ return{defs:out,baud:bd?+bd.textContent:0}}
+
+/* ---------- Tactrix OpenPort 2.0 (พอร์ต COM แบบ CDC, คำสั่ง ASCII แบบ J2534) ----------
+   ส่ง OBD-II โหมด 01 เป็นเฟรม CAN ดิบ (J2534 protocol 5) แล้วอ่านคำตอบ 7E8-7EF เอง
+   คำสั่ง: ati / ato5 <flags> <baud> <chan> <seq> / atf5 <type> <mlen> <plen> <seq>+mask+pattern / att5 <size> <txflags> <timeout_us> <seq>+id4+data / atc5 <seq>
+   เฟรมขาเข้า (ไบนารี): 'a' 'r' <'1'..'6'> <len> <RxStatus> <ts 4B> <CAN-ID 4B BE> <data...> */
+const TX={seq:0,rb:[],frames:[],lines:[]};
+function txOnData(b){for(let i=0;i<b.length;i++)TX.rb.push(b[i]);if(TX.rb.length>8192)TX.rb.splice(0,TX.rb.length-4096);txParse();if(CAN.wake)CAN.wake()}
+function txParse(){
+ const r=TX.rb;
+ for(;;){
+  while(r.length&&r[0]!==0x61)r.shift();
+  if(r.length<3)return;
+  if(r[1]!==0x72){r.shift();continue}
+  const c=r[2];
+  if(c>=0x31&&c<=0x36){
+   if(r.length<4)return;const n=r[3];if(r.length<4+n)return;
+   const f=r.splice(0,4+n);
+   if(n>=9)TX.frames.push({st:f[4],id:((f[9]<<24)|(f[10]<<16)|(f[11]<<8)|f[12])>>>0,d:f.slice(13)});
+   if(TX.frames.length>64)TX.frames.shift()}
+  else{
+   const k=r.indexOf(10);if(k<0){if(r.length>300)r.length=0;return}
+   const ln=String.fromCharCode.apply(null,r.splice(0,k+1)).trim();if(ln)TX.lines.push(ln)}}}
+async function txCmd(c,pl,tmo,noSeq){
+ let s=0;if(!noSeq){TX.seq=TX.seq>=65535?1:TX.seq+1;s=TX.seq}
+ TX.lines.length=0;
+ await CAN.link.write(Array.from(new TextEncoder().encode(c+(noSeq?"":" "+s)+"\r\n")).concat(pl||[]));
+ const t0=performance.now();
+ for(;;){
+  const k=noSeq?TX.lines.findIndex(l=>/^ar[a-z]/i.test(l)):TX.lines.findIndex(l=>l.split(/\s+/).pop()===String(s));
+  if(k>=0)return TX.lines.splice(k,1)[0];
+  if(!CAN.on||performance.now()-t0>tmo)return null;
+  await canWaitRx(30)}}
+function txIsEcu(id,id29){return id29?((id>>>16)===0x18DA&&((id>>>8)&255)===0xF1):(id>=0x7E8&&id<=0x7EF)}
+async function txQuery(d){
+ const m=parseInt(d.mode,16),p=parseInt(d.pid,16),a=CAN.tx29;
+ TX.frames.length=0;
+ const r=await txCmd("att5 12 "+(a?256:0)+" 100000",(a?[0x18,0xDB,0x33,0xF1]:[0,0,0x07,0xDF]).concat([2,m,p,0,0,0,0,0]),1500);
+ if(!r||/^are/i.test(r))return{err:r||"Tactrix ไม่ตอบคำสั่งส่ง"};
+ const t0=performance.now();
+ while(CAN.on&&performance.now()-t0<600){
+  const k=TX.frames.findIndex(f=>(f.st&0x30)===0&&f.d.length>=3&&f.d[1]===m+0x40&&f.d[2]===p&&txIsEcu(f.id,a));
+  if(k>=0){const f=TX.frames.splice(k,1)[0];return{data:f.d.slice(3,1+f.d[0])}}
+  await canWaitRx(30)}
+ return{data:null}}
+async function txOpen(baud,a){
+ let r=await txCmd("ato5 "+(a?256:0)+" "+baud+" 0",null,2000);
+ canLog("ato5 "+baud+(a?" 29 บิต":" 11 บิต")+": "+(r||"(ไม่ตอบ)"));
+ if(!r||/^are/i.test(r))return false;
+ for(const L of[1,4]){   // ตัวกรองรับทุกเฟรม (mask 0 / pattern 0) ลองความยาว 1 ไบต์ก่อน ถ้าไม่รับลอง 4 ไบต์
+  r=await txCmd("atf5 1 "+L+" "+L,new Array(2*L).fill(0),2000);
+  canLog("atf5 pass-all (len "+L+"): "+(r||"(ไม่ตอบ)"));
+  if(r&&!/^are/i.test(r))return true}
+ return false}
+/* ---------- CAN bus ผ่าน Scanmatik SM2 (J2534 CAN ดิบ ผ่าน sm2_bridge.py) อ่านอย่างเดียว ---------- */
+function sm2OnData(b){   // เฟรมจากบริดจ์ = CAN-ID 4 ไบต์ (BE) + ข้อมูล
+ if(b.length>=4)TX.frames.push({st:0,id:((b[0]<<24)|(b[1]<<16)|(b[2]<<8)|b[3])>>>0,d:Array.from(b.subarray(4))});
+ if(TX.frames.length>64)TX.frames.shift();
+ if(CAN.wake)CAN.wake()}
+async function sm2Query(d){
+ const m=parseInt(d.mode,16),p=parseInt(d.pid,16),a=CAN.tx29;
+ TX.frames.length=0;
+ await CAN.link.write((a?[0x18,0xDB,0x33,0xF1]:[0,0,0x07,0xDF]).concat([2,m,p,0,0,0,0,0]));
+ const t0=performance.now();
+ while(CAN.on&&performance.now()-t0<600){
+  const k=TX.frames.findIndex(f=>f.d.length>=3&&f.d[1]===m+0x40&&f.d[2]===p&&txIsEcu(f.id,a));
+  if(k>=0){const f=TX.frames.splice(k,1)[0];return{data:f.d.slice(3,1+f.d[0])}}
+  await canWaitRx(30)}
+ return{data:null}}
+function canBtns(dis){$("#can-usb").disabled=dis;$("#can-ser").disabled=dis;$("#can-tact").disabled=dis;$("#can-sm2").disabled=dis;$("#can-stop").hidden=!dis}
+async function canConnectSm2(){
+ if(CAN.on||CAN.link)return;
+ if(S.usb){canLog("ตัดการเชื่อมต่อ K-line ก่อน (ใช้สายได้ทีละแบบ) รีเฟรชหน้าแล้วกดปุ่มนี้ก่อน");return}
+ const P={"6":[500000,0],"7":[500000,1],"8":[250000,0],"9":[250000,1]},sel=$("#can-proto").value,
+  cands=sel==="0"?[[500000,0],[250000,0],[500000,1],[250000,1]]:[P[sel]];
+ TX.rb.length=0;TX.frames.length=0;TX.lines.length=0;
+ let up=false;
+ try{
+  for(const[b,a]of cands){
+   canLog("SM2 เปิด CAN "+b+(a?" 29 บิต":" 11 บิต")+"...");
+   const lk=new Sm2Link(sm2OnData,{baud:b,ext:a?1:0});
+   try{await lk.open()}
+   catch(e){const m=(e&&e.message)||String(e);canLog("เปิด CAN ไม่ได้: "+m);try{await lk.close()}catch(_){}
+    if(/J2534/.test(m)){await sleep(700);continue}   // ช่องนี้ SM2 ไม่รับ ลองแบบถัดไป
+    return}
+   CAN.link=lk;CAN.on=true;CAN.sm2=true;CAN.tx29=!!a;canBtns(true);
+   canLog("เชื่อมต่อ "+lk.name+" แล้ว ตรวจการเชื่อม CAN (0100)...");
+   const q=await sm2Query({mode:"01",pid:"00"});
+   canLog("0100: "+(q.data?q.data.map(x=>("0"+x.toString(16)).slice(-2)).join(" ").toUpperCase():"(ไม่มีคำตอบ)"));
+   if(q.data){up=true;break}
+   CAN.on=false;CAN.sm2=false;CAN.link=null;canBtns(false);await lk.close();await sleep(700)}
+  if(!up){canLog("ไม่พบ ECU บนบัส CAN ตรวจว่าเปิดสวิตช์กุญแจแล้ว สายต่อถูกขา (OBD-II พิน 6 = CAN-H, 14 = CAN-L) และรถรุ่นนี้มี CAN จริง แล้วลองเลือกโปรโตคอลเอง");if(CAN.link)await canStop();return}
+  canLoop()}
+ catch(e){canLog("เชื่อมต่อไม่สำเร็จ: "+(e&&e.message||e));try{if(CAN.link)await CAN.link.close()}catch(_){}CAN.link=null;CAN.on=false;CAN.sm2=false;canBtns(false)}}
+async function canConnectTx(mode){
+ if(CAN.on||CAN.link)return;
+ if(S.usb){canLog("ตัดการเชื่อมต่อ K-line ก่อน (ใช้สายได้ทีละแบบ)");return}
+ if(mode!=="serial")mode=("usb"in navigator)?"usb":"serial";
+ try{
+  if(mode==="serial"&&!("serial"in navigator))throw new Error("เบราว์เซอร์นี้ไม่รองรับ Web Serial (ใช้ Chrome/Edge)");
+  TX.rb.length=0;TX.frames.length=0;TX.lines.length=0;TX.seq=0;
+  const lk=mode==="usb"?new CdcUsbLink(txOnData):new SerialLink(txOnData);lk.baud=115200;
+  await lk.open();
+  CAN.link=lk;CAN.on=true;CAN.tact=true;
+  $("#can-usb").disabled=true;$("#can-ser").disabled=true;$("#can-tact").disabled=true;$("#can-sm2").disabled=true;$("#can-stop").hidden=false;
+  canLog("เชื่อมต่อ Tactrix OpenPort 2.0 ("+(mode==="usb"?"WebUSB":"พอร์ต COM")+")");
+  let r=await txCmd("ati",null,2500,true);canLog("ati: "+(r||"(ไม่ตอบ)"));
+  if(!r){canLog("OpenPort ไม่ตอบ ตรวจว่าเสียบสายแล้วและไม่มีโปรแกรมอื่น (EcuFlash/RomRaider/Tactrix) ใช้พอร์ตอยู่");await canStop();return}
+  const P={"6":[500000,0],"7":[500000,1],"8":[250000,0],"9":[250000,1]},sel=$("#can-proto").value,
+   cands=sel==="0"?[[500000,0],[250000,0],[500000,1],[250000,1]]:[P[sel]];
+  let up=false;
+  for(const[b,a]of cands){
+   if(!CAN.on)return;
+   CAN.tx29=!!a;
+   if(!await txOpen(b,a)){try{await txCmd("atc5",null,800)}catch(_){}continue}
+   canLog("ตรวจการเชื่อม CAN (0100)...");
+   const q=await txQuery({mode:"01",pid:"00"});
+   canLog("0100: "+(q.data?q.data.map(x=>("0"+x.toString(16)).slice(-2)).join(" ").toUpperCase():"(ไม่มีคำตอบ"+(q.err?" – "+q.err:"")+")"));
+   if(q.data){up=true;break}
+   try{await txCmd("atc5",null,800)}catch(_){}}
+  if(!up){canLog("ไม่พบ ECU บนบัส CAN ตรวจว่าเปิดสวิตช์กุญแจแล้ว สายต่อถูกขา (OBD-II พิน 6 = CAN-H, 14 = CAN-L) แล้วลองเลือกโปรโตคอลเอง");await canStop();return}
+  canLoop()}
+ catch(e){canLog("เชื่อมต่อไม่สำเร็จ: "+(e&&e.name?e.name+" - ":"")+(e&&e.message||e));if(e&&e.name==="NotFoundError"&&/No device selected/i.test(e.message||""))canLog("ไม่ได้เลือกอุปกรณ์ ในหน้าต่างให้คลิกชื่อ OpenPort 2.0 ก่อน ปุ่ม เชื่อมต่อ ถึงจะกดได้");else if(e&&(e.name==="NotFoundError"||e.name==="SecurityError"||e.name==="NetworkError"))canLog("เบราว์เซอร์เห็นสายแต่เปิดไม่ได้ = Windows ยังใช้ไดรเวอร์ Tactrix/COM จับสายอยู่ ไม่ใช่ WinUSB วิธีแก้: ปิด EcuFlash/RomRaider ทุกตัว แล้วเปิด Zadig เลือก Options > List All Devices เลือก OpenPort 2.0 (ถ้ามีหลาย interface ทำทีละอัน) ตั้งไดรเวอร์เป็น WinUSB กด Replace Driver แล้วถอดเสียบสายและปิดเปิด Chrome ใหม่ (EcuFlash จะใช้ไม่ได้จนกว่าจะลงไดรเวอร์ Tactrix กลับ)");try{if(CAN.link)await CAN.link.close()}catch(_){}CAN.link=null;CAN.on=false;CAN.tact=false;CAN.sm2=false;$("#can-usb").disabled=false;$("#can-ser").disabled=false;$("#can-tact").disabled=false;$("#can-sm2").disabled=false;$("#can-stop").hidden=true}}
+$("#can-tact").addEventListener("click",()=>canConnectTx("usb"));$("#can-tactser").addEventListener("click",()=>canConnectTx("serial"));
+$("#can-usb").addEventListener("click",()=>canConnect("usb"));
+$("#can-ser").addEventListener("click",()=>canConnect("serial"));
+$("#can-stop").addEventListener("click",canStop);
+$("#can-sm2").addEventListener("click",canConnectSm2);
+/* ---- ปุ่มต่อ CAN บนหน้าค่าสด (ใช้ฟังก์ชันเดียวกับแท็บ CAN bus) ---- */
+(function(){
+ const g=id=>document.getElementById(id);
+ function lvCanSync(){
+  const busy=g("can-usb").disabled, on=!g("can-stop").hidden;
+  ["lvCanUsb","lvCanSer","lvCanTact","lvCanTactSer","lvCanSm2"].forEach(i=>{g(i).disabled=busy||LV.on||S.usb});
+  g("lvCanStop").hidden=!on;
+  g("lvConn").disabled=busy;if(g("lvConnSm2"))g("lvConnSm2").disabled=busy;
+  if(g("lvCanProto").value!==g("can-proto").value&&document.activeElement!==g("lvCanProto"))g("lvCanProto").value=g("can-proto").value;
+ }
+ g("lvCanProto").addEventListener("change",()=>{g("can-proto").value=g("lvCanProto").value});
+ g("lvCanUsb").addEventListener("click",()=>{if(!S.usb&&!LV.on)canConnect("usb")});
+ g("lvCanSer").addEventListener("click",()=>{if(!S.usb&&!LV.on)canConnect("serial")});
+ g("lvCanTact").addEventListener("click",()=>{if(!S.usb&&!LV.on)canConnectTx("usb")});g("lvCanTactSer").addEventListener("click",()=>{if(!S.usb&&!LV.on)canConnectTx("serial")});g("lvCanSm2").addEventListener("click",()=>{if(!S.usb&&!LV.on)canConnectSm2()});
+ g("lvCanStop").addEventListener("click",canStop);
+ const _cl=canLog;
+ canLog=function(t){_cl(t);const e=g("lvCanInfo");if(e)e.textContent="CAN: "+t;lvCanSync()};
+ setInterval(lvCanSync,400);lvCanSync();
+})();
+
+$("#can-adx").addEventListener("change",function(){
+ const f=this.files&&this.files[0];this.value="";if(!f)return;
+ if(CAN.on){canLog("หยุดการอ่านก่อนโหลดนิยามใหม่");return}
+ const fr=new FileReader();
+ fr.onload=()=>{try{const r=adxParse(String(fr.result));
+  if(!r.defs.length)throw new Error("ไม่พบค่าที่ผูกกับคำสั่งอ่านในไฟล์นี้");
+  CAN.defs=r.defs;canRender();$("#can-defname").textContent="นิยามจาก "+f.name+" ("+r.defs.length+" ค่า)";
+  if(r.baud&&[...$("#can-baud").options].some(o=>+o.value===r.baud))$("#can-baud").value=String(r.baud);
+  canLog("โหลดนิยามจาก "+f.name+": "+r.defs.map(d=>d.mode+d.pid).join(", "))}catch(e){canLog("โหลด .adx ไม่ได้: "+(e&&e.message||e))}};
+ fr.readAsText(f)});
+canRender();
 setInterval(tick,250);keepAlive();render();
 
 })();
