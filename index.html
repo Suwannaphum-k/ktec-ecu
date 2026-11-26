@@ -1294,8 +1294,16 @@ function atMono(a){if(a.length<2||a.some(function(v){return!isFinite(v)}))return
 function atFrac(a,x){var n=a.length,s=a[1]>a[0]?1:-1,i,f;
 for(i=0;i<n-2;i++)if((x-a[i+1])*s<=0)break;
 f=i+(x-a[i])/(a[i+1]-a[i]);return{f:clamp(f,0,n-1),out:f<-.5||f>n-.5}}
+function atWhy(){var t=T.cur;if(!t||!T.bin)return"เปิดไฟล์ .bin และ .xdf ในแท็บ จูน แล้วเลือกตารางน้ำมันก่อน (ไม่ต้องต่อรถ)";
+if(t.rows<2||t.cols<2)return"ตารางนี้มีแกนเดียว ให้เลือกตารางน้ำมันที่มีทั้ง RPM และ TPS";
+var bad=[];[["คอลัมน์",t.x,t.cols],["แถว",t.y,t.rows]].forEach(function(q){var s=tAxVals(q[1],q[2]),v=s.map(Number),i;if(atMono(v))return;
+for(i=1;i<v.length;i++)if(!isFinite(v[i])||!isFinite(v[i-1])||(v[i]-v[i-1])*(v[v.length-1]-v[0])<=0)break;
+bad.push("แกน"+q[0]+"ไม่เรียงลำดับที่ตำแหน่ง "+i+"–"+(i+1)+" (ค่า "+s[i-1]+" แล้ว "+s[i]+")")});
+return bad.length?bad.join(" · ")+" ให้ตรวจค่าแกนเทียบกับโปรแกรมจูนเดิม":"ยังระบุไม่ได้ว่าแกนไหนคือ RPM / TPS ให้เลือกที่ช่อง ชนิดแกน ด้านบน"}
 function atAxes(){var t=T.cur;if(!t||!T.bin||!T.lax)return null;
 var m=$("#atAxis").value,xk=T.lax.x,yk=T.lax.y;
+if(m==="auto"){var other=function(ax,n){var v=tAxVals(ax,n).map(Number);return v.every(function(q){return isFinite(q)&&q>=0&&q<=120})&&Math.max.apply(null,v)>5};
+if(yk==="rpm"&&!xk&&other(t.x,t.cols))xk="tps";if(xk==="rpm"&&!yk&&other(t.y,t.rows))yk="tps"}
 if(m==="rt"){yk="rpm";xk="tps"}if(m==="tr"){yk="tps";xk="rpm"}
 if(!((xk==="rpm"&&yk==="tps")||(xk==="tps"&&yk==="rpm")))return null;
 var xs=tAxVals(t.x,t.cols).map(Number),ys=tAxVals(t.y,t.rows).map(Number);
@@ -1329,7 +1337,7 @@ if(key!==AT.key||T.orig!==AT.bin){if(AT.on)atStop("เปลี่ยนตา�
 if(cur==="auto")atRender()}
 function atRender(){var t=T.cur,A=atAxes();
 $("#atNone").hidden=!!A;$("#atMain").hidden=!A;$("#atTitle").textContent=t?t.title:"ยังไม่ได้เลือกตาราง";
-if(!A){$("#atNoneText").textContent=!t?"เปิดไฟล์ .bin และ .xdf ในแท็บ จูน แล้วเลือกตารางน้ำมันก่อน":"ตารางนี้ยังระบุแกน RPM/TPS ไม่ได้ หรือค่าแกนไม่เรียงลำดับ ลองเลือกชนิดแกนด้านบน หรือเลือกตารางอื่น";atStop();return}
+if(!A){$("#atNoneText").textContent=atWhy();atStop();return}
 var V=tVals(t),xs=tAxVals(t.x,t.cols),ys=tAxVals(t.y,t.rows),lo=Infinity,hi=-Infinity,r,c,h;
 V.forEach(function(row){row.forEach(function(v){lo=Math.min(lo,v);hi=Math.max(hi,v)})});
 var rough=atRough(V);AT.rough=rough>.1;$("#atRough").hidden=!AT.rough;$("#atRoughPct").textContent=Math.round(rough*100);
