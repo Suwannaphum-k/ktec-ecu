@@ -1550,15 +1550,25 @@ function ftdiBaud(bcd,baud){
 class Ftdi{
  constructor(onData){this.onData=onData;this.dev=null;this.run=false}
  async open(){
-  const dev=await navigator.usb.requestDevice({filters:[]});
+  let dev=null,fromKnown=false;
+  try{                                   // ใช้อุปกรณ์ FTDI ที่เคยอนุญาตไว้ก่อน (ไม่ต้องเปิดหน้าต่างเลือกซ้ำ)
+   const ks=(await navigator.usb.getDevices()).filter(d=>d.vendorId===0x0403);
+   if(ks.length===1){dev=ks[0];fromKnown=true;log("ใช้อุปกรณ์ที่เคยอนุญาตไว้: "+(dev.productName||"FTDI"))}
+  }catch(e){}
+  if(!dev)dev=await navigator.usb.requestDevice({filters:[{vendorId:0x0403}]});
   log("เลือกอุปกรณ์ VID:PID = "+hex(dev.vendorId,4)+":"+hex(dev.productId,4)+" "+(dev.productName||""));
-  if(dev.vendorId!==0x0403)throw new Error("ไม่ใช่ชิป FTDI (VID ต้องเป็น 0403) หน้านี้รองรับเฉพาะ FTDI");
-  await dev.open();
-  if(!dev.configuration)await dev.selectConfiguration(1);
-  await dev.claimInterface(0);
-  const eps=dev.configuration.interfaces[0].alternates[0].endpoints;
+  try{await this.openDev(dev)}
+  catch(e){
+   try{await dev.close()}catch(_){}
+   if(fromKnown&&e&&e.name==="SecurityError"){          // สิทธิ์เก่าใช้ไม่ได้ -> ขอสิทธิ์ใหม่
+    log("สิทธิ์เดิมใช้ไม่ได้ ขอเลือกอุปกรณ์ใหม่…");
+    try{await dev.forget()}catch(_){}
+    dev=await navigator.usb.requestDevice({filters:[{vendorId:0x0403}]});
+    try{await this.openDev(dev)}catch(e2){try{await dev.close()}catch(_){}throw e2}
+   }else throw e}
+  const eps=dev.configuration.interfaces.find(i=>i.interfaceNumber===this.ifn).alternates[0].endpoints;
   const ei=eps.find(e=>e.direction==="in"&&e.type==="bulk"),eo=eps.find(e=>e.direction==="out"&&e.type==="bulk");
-  if(!ei||!eo)throw new Error("ไม่พบ endpoint ของ FTDI");
+  if(!ei||!eo){try{await dev.close()}catch(_){}throw new Error("ไม่พบ endpoint ของ FTDI")}
   this.dev=dev;this.inN=ei.endpointNumber;this.outN=eo.endpointNumber;this.pk=ei.packetSize||64;
   this.bcd=(dev.deviceVersionMajor<<8)|(dev.deviceVersionMinor<<4)|dev.deviceVersionSubminor;
   this.ifc=(this.bcd===0x500||this.bcd===0x700||this.bcd===0x800)?1:0;
@@ -1570,6 +1580,18 @@ class Ftdi{
   await this.setBreak(false);
   await this.ctl(0,1,this.ifc);await this.ctl(0,2,this.ifc);   // ล้าง buffer
   this.run=true;this.loop()}
+ async openDev(dev){
+  if(dev.opened){try{await dev.close()}catch(_){}}
+  try{await dev.open()}catch(e){                 // ลองซ้ำอีกครั้ง (Android บางเครื่องเปิดครั้งแรกไม่ติด)
+   log("เปิดอุปกรณ์ครั้งแรกไม่ได้ ("+(e&&e.name||"")+") ลองอีกครั้ง…");
+   await new Promise(r=>setTimeout(r,400));await dev.open()}
+  if(!dev.configuration){
+   const cv=dev.configurations&&dev.configurations[0]?dev.configurations[0].configurationValue:1;
+   await dev.selectConfiguration(cv)}
+  let last=null;this.ifn=-1;
+  for(const i of dev.configuration.interfaces){
+   try{await dev.claimInterface(i.interfaceNumber);this.ifn=i.interfaceNumber;break}catch(e){last=e}}
+  if(this.ifn<0)throw last||new Error("ยึด interface ของ FTDI ไม่ได้")}
  ctl(req,value,index){return this.dev.controlTransferOut({requestType:"vendor",recipient:"device",request:req,value,index})}
  async setBaud(b){const x=ftdiBaud(this.bcd,b);await this.ctl(3,x.value,x.index)}
  setBreak(on){return this.ctl(4,8|(on?0x4000:0),this.ifc)}      // 8N1  (bit14 = break = TX ต่ำ)
@@ -2118,8 +2140,15 @@ async function connectUsb(){
   S.ftdi=new Ftdi(b=>{for(let i=0;i<b.length;i++)S.rx.push(b[i]);if(S.rx.length>4096)S.rx.splice(0,S.rx.length-4096)});
   await S.ftdi.open();S.usb=true;S.ecuOk=false;
   log("เชื่อมต่อ "+S.ftdi.name+" (bcdDevice 0x"+hex(S.ftdi.bcd,4)+") 10400 baud 8N1");
- }catch(e){S.usb=false;log("เชื่อมต่อ USB ไม่สำเร็จ: "+(e&&e.name?e.name+" - ":"")+(e&&e.message||e))}
+ }catch(e){S.usb=false;log("เชื่อมต่อ USB ไม่สำเร็จ: "+(e&&e.name?e.name+" - ":"")+(e&&e.message||e));usbHint(e)}
  render()}
+function usbHint(e){
+ const n=e&&e.name,w=/Windows/i.test(navigator.userAgent),a=/Android/i.test(navigator.userAgent);
+ if(n==="NotFoundError")log("ทางแก้: ไม่ได้เลือกอุปกรณ์ในหน้าต่าง กดเชื่อมต่อใหม่แล้วเลือก FT232R");
+ else if(n==="SecurityError")log(w?"ทางแก้ (Windows): ไดรเวอร์ FTDI ของ Windows จับสายอยู่ ใช้โปรแกรม Zadig เปลี่ยนไดรเวอร์ของ FT232R เป็น WinUSB แล้วปิดเปิด Chrome ใหม่"
+  :a?"ทางแก้ (Android): ถอดสาย OTG เสียบใหม่ กดอนุญาตเมื่อมี popup ปิดแอปอื่นที่ใช้ USB แล้วปิดเปิด Chrome ใหม่"
+  :"ทางแก้: ระบบไม่ให้เข้าถึง USB (Linux ตั้งสิทธิ์ udev / ปิดโปรแกรมที่ใช้สายอยู่) แล้วถอดเสียบใหม่");
+ else if(n==="NetworkError")log("ทางแก้: เปิดหรือยึดอุปกรณ์ไม่ได้ มีโปรแกรมอื่นใช้สายอยู่หรือสายหลวม ปิดโปรแกรมอื่น ถอดเสียบใหม่")}
 $("#o-bUsb").addEventListener("click",connectUsb);
 $("#o-bEcu").addEventListener("click",connectEcu);
 $("#o-bId").addEventListener("click",async()=>{
